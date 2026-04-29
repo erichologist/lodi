@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated Mesh Gradient Playground</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow: hidden;
+            background: #0a0e27;
+            color: #fff;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .canvas-wrapper {
+            flex: 1;
+            position: relative;
+            background: linear-gradient(135deg, #1a1f3a 0%, #0f1419 100%);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .control-panel {
+            width: 360px;
+            background: rgba(15, 20, 31, 0.95);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 24px;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .preset-btn {
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .preset-btn.active {
+            background: rgba(100, 200, 255, 0.3);
+            border-color: rgba(100, 200, 255, 0.8);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .label {
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .value-display {
+            font-size: 12px;
+            color: rgba(100, 200, 255, 0.8);
+            font-weight: 700;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, rgba(100, 150, 255, 0.2), rgba(100, 200, 255, 0.4));
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(100, 200, 255, 0.9);
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(100, 200, 255, 0.5);
+            transition: all 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            width: 18px;
+            height: 18px;
+            box-shadow: 0 0 12px rgba(100, 200, 255, 0.8);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(100, 200, 255, 0.9);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(100, 200, 255, 0.5);
+            transition: all 0.2s;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            width: 18px;
+            height: 18px;
+            box-shadow: 0 0 12px rgba(100, 200, 255, 0.8);
+        }
+
+        .color-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+
+        .color-input-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .color-input-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 600;
+        }
+
+        input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        input[type="color"]:hover {
+            transform: scale(1.05);
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, rgba(100, 200, 255, 0.3), rgba(150, 200, 255, 0.2));
+            color: rgba(200, 220, 255, 1);
+            border: 1px solid rgba(100, 200, 255, 0.4);
+        }
+
+        .action-btn.primary:hover {
+            background: linear-gradient(135deg, rgba(100, 200, 255, 0.4), rgba(150, 200, 255, 0.3));
+            border-color: rgba(100, 200, 255, 0.6);
+        }
+
+        .action-btn.secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .action-btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: rgba(100, 200, 255, 0.9);
+        }
+
+        .checkbox-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+        }
+
+        .info-text {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            line-height: 1.4;
+        }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.1), transparent);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-label {
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .stat-value {
+            font-size: 14px;
+            color: rgba(100, 200, 255, 0.8);
+            font-weight: 700;
+            margin-top: 2px;
+        }
+
+        /* Scrollbar styling */
+        .control-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .control-panel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .control-panel::-webkit-scrollbar-thumb {
+            background: rgba(100, 200, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .control-panel::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 200, 255, 0.5);
+        }
+
+        .title {
+            font-size: 16px;
+            font-weight: 700;
+            background: linear-gradient(135deg, rgba(100, 200, 255, 1), rgba(150, 200, 255, 0.8));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 4px;
+        }
+
+        .subtitle {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-wrapper">
+            <canvas id="gradientCanvas"></canvas>
+        </div>
+
+        <div class="control-panel">
+            <div>
+                <div class="title">Mesh Gradient</div>
+                <div class="subtitle">Interactive Animation Playground</div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Presets -->
+            <div class="panel-section">
+                <div class="section-title">Presets</div>
+                <div class="preset-grid">
+                    <button class="preset-btn active" data-preset="aurora">Aurora</button>
+                    <button class="preset-btn" data-preset="ocean">Ocean</button>
+                    <button class="preset-btn" data-preset="sunset">Sunset</button>
+                    <button class="preset-btn" data-preset="forest">Forest</button>
+                    <button class="preset-btn" data-preset="neon">Neon</button>
+                    <button class="preset-btn" data-preset="cosmic">Cosmic</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Colors -->
+            <div class="panel-section">
+                <div class="section-title">Colors</div>
+                <div class="color-inputs">
+                    <div class="color-input-wrapper">
+                        <label class="color-input-label">Color 1</label>
+                        <input type="color" id="color1" value="#00d4ff">
+                    </div>
+                    <div class="color-input-wrapper">
+                        <label class="color-input-label">Color 2</label>
+                        <input type="color" id="color2" value="#0099ff">
+                    </div>
+                    <div class="color-input-wrapper">
+                        <label class="color-input-label">Color 3</label>
+                        <input type="color" id="color3" value="#6366f1">
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Animation Controls -->
+            <div class="panel-section">
+                <div class="section-title">Animation</div>
+                
+                <div class="control-group">
+                    <label class="label">
+                        <span>Speed</span>
+                        <span class="value-display" id="speedValue">1.0x</span>
+                    </label>
+                    <input type="range" id="speedControl" min="0.1" max="3" step="0.1" value="1">
+                </div>
+
+                <div class="control-group">
+                    <label class="label">
+                        <span>Complexity</span>
+                        <span class="value-display" id="complexityValue">8</span>
+                    </label>
+                    <input type="range" id="complexityControl" min="2" max="16" step="1" value="8">
+                </div>
+
+                <div class="control-group">
+                    <label class="label">
+                        <span>Noise</span>
+                        <span class="value-display" id="noiseValue">0.5</span>
+                    </label>
+                    <input type="range" id="noiseControl" min="0" max="1" step="0.05" value="0.5">
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Display Options -->
+            <div class="panel-section">
+                <div class="section-title">Display</div>
+                
+                <label class="checkbox-group">
+                    <input type="checkbox" id="blurToggle" checked>
+                    <span class="checkbox-label">Blur Effect</span>
+                </label>
+
+                <label class="checkbox-group">
+                    <input type="checkbox" id="glitchToggle">
+                    <span class="checkbox-label">Glitch Mode</span>
+                </label>
+
+                <label class="checkbox-group">
+                    <input type="checkbox" id="particlesToggle" checked>
+                    <span class="checkbox-label">Particles</span>
+                </label>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Actions -->
+            <div class="panel-section">
+                <div class="section-title">Actions</div>
+                <div class="button-group">
+                    <button class="action-btn primary" id="randomizeBtn">Randomize</button>
+                    <button class="action-btn secondary" id="pauseBtn">Pause</button>
+                </div>
+                <button class="action-btn secondary" id="downloadBtn" style="width: 100%;">Download Image</button>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Stats -->
+            <div class="panel-section">
+                <div class="section-title">Performance</div>
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-label">FPS</div>
+                        <div class="stat-value" id="fpsValue">60</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Time</div>
+                        <div class="stat-value" id="timeValue">0s</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-text">
+                Click preset buttons or adjust sliders to explore different animated mesh gradients. Each gradient is uniquely generated and continuously animated.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class MeshGradientPlayground {
+            constructor() {
+                this.canvas = document.getElementById('gradientCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.setupCanvas();
+
+                this.state = {
+                    colors: ['#00d4ff', '#0099ff', '#6366f1'],
+                    speed: 1,
+                    complexity: 8,
+                    noise: 0.5,
+                    blur: true,
+                    glitch: false,
+                    particles: true,
+                    paused: false,
+                    time: 0,
+                };
+
+                this.meshPoints = [];
+                this.particles = [];
+                this.frameCount = 0;
+                this.lastFrameTime = performance.now();
+                this.fps = 60;
+
+                this.initializeMesh();
+                this.setupControls();
+                this.animate();
+            }
+
+            setupCanvas() {
+                const dpr = window.devicePixelRatio || 1;
+                this.canvas.width = this.canvas.offsetWidth * dpr;
+                this.canvas.height = this.canvas.offsetHeight * dpr;
+                this.ctx.scale(dpr, dpr);
+            }
+
+            initializeMesh() {
+                this.meshPoints = [];
+                const cols = this.state.complexity;
+                const rows = this.state.complexity;
+                const w = this.canvas.width / (window.devicePixelRatio || 1);
+                const h = this.canvas.height / (window.devicePixelRatio || 1);
+
+                for (let i = 0; i < cols; i++) {
+                    for (let j = 0; j < rows; j++) {
+                        this.meshPoints.push({
+                            x: (i / (cols - 1)) * w,
+                            y: (j / (rows - 1)) * h,
+                            originalX: (i / (cols - 1)) * w,
+                            originalY: (j / (rows - 1)) * h,
+                            vx: (Math.random() - 0.5) * 2,
+                            vy: (Math.random() - 0.5) * 2,
+                            color: this.state.colors[Math.floor(Math.random() * this.state.colors.length)]
+                        });
+                    }
+                }
+
+                this.particles = [];
+                if (this.state.particles) {
+                    for (let i = 0; i < 50; i++) {
+                        this.particles.push({
+                            x: Math.random() * w,
+                            y: Math.random() * h,
+                            vx: (Math.random() - 0.5) * 0.5,
+                            vy: (Math.random() - 0.5) * 0.5,
+                            life: Math.random() * 0.5 + 0.5,
+                            maxLife: Math.random() * 0.5 + 0.5
+                        });
+                    }
+                }
+            }
+
+            setupControls() {
+                // Presets
+                document.querySelectorAll('.preset-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.applyPreset(e.target.dataset.preset);
+                    });
+                });
+
+                // Color inputs
+                ['color1', 'color2', 'color3'].forEach((id, idx) => {
+                    document.getElementById(id).addEventListener('change', (e) => {
+                        this.state.colors[idx] = e.target.value;
+                        this.updateMeshColors();
+                    });
+                });
+
+                // Sliders
+                document.getElementById('speedControl').addEventListener('input', (e) => {
+                    this.state.speed = parseFloat(e.target.value);
+                    document.getElementById('speedValue').textContent = e.target.value + 'x';
+                });
+
+                document.getElementById('complexityControl').addEventListener('input', (e) => {
+                    this.state.complexity = parseInt(e.target.value);
+                    document.getElementById('complexityValue').textContent = e.target.value;
+                    this.initializeMesh();
+                });
+
+                document.getElementById('noiseControl').addEventListener('input', (e) => {
+                    this.state.noise = parseFloat(e.target.value);
+                    document.getElementById('noiseValue').textContent = e.target.value.toFixed(2);
+                });
+
+                // Checkboxes
+                document.getElementById('blurToggle').addEventListener('change', (e) => {
+                    this.state.blur = e.target.checked;
+                });
+
+                document.getElementById('glitchToggle').addEventListener('change', (e) => {
+                    this.state.glitch = e.target.checked;
+                });
+
+                document.getElementById('particlesToggle').addEventListener('change', (e) => {
+                    this.state.particles = e.target.checked;
+                    if (e.target.checked) {
+                        this.initializeMesh();
+                    }
+                });
+
+                // Buttons
+                document.getElementById('randomizeBtn').addEventListener('click', () => {
+                    this.randomizeSettings();
+                });
+
+                document.getElementById('pauseBtn').addEventListener('click', (e) => {
+                    this.state.paused = !this.state.paused;
+                    e.target.textContent = this.state.paused ? 'Resume' : 'Pause';
+                });
+
+                document.getElementById('downloadBtn').addEventListener('click', () => {
+                    this.downloadImage();
+                });
+
+                window.addEventListener('resize', () => this.setupCanvas());
+            }
+
+            applyPreset(preset) {
+                const presets = {
+                    aurora: {
+                        colors: ['#00d4ff', '#00ff88', '#ff00ff'],
+                        speed: 1.2,
+                        complexity: 10,
+                        noise: 0.6
+                    },
+                    ocean: {
+                        colors: ['#0099ff', '#003366', '#66ccff'],
+                        speed: 0.8,
+                        complexity: 6,
+                        noise: 0.4
+                    },
+                    sunset: {
+                        colors: ['#ff6b00', '#ff1493', '#ffd700'],
+                        speed: 1.5,
+                        complexity: 8,
+                        noise: 0.7
+                    },
+                    forest: {
+                        colors: ['#00aa00', '#006600', '#00ff88'],
+                        speed: 0.6,
+                        complexity: 12,
+                        noise: 0.5
+                    },
+                    neon: {
+                        colors: ['#ff006e', '#00f5ff', '#ffbe0b'],
+                        speed: 2,
+                        complexity: 10,
+                        noise: 0.8
+                    },
+                    cosmic: {
+                        colors: ['#6366f1', '#a855f7', '#ec4899'],
+                        speed: 1,
+                        complexity: 14,
+                        noise: 0.6
+                    }
+                };
+
+                const p = presets[preset];
+                this.state.colors = p.colors;
+                this.state.speed = p.speed;
+                this.state.complexity = p.complexity;
+                this.state.noise = p.noise;
+
+                document.getElementById('color1').value = p.colors[0];
+                document.getElementById('color2').value = p.colors[1];
+                document.getElementById('color3').value = p.colors[2];
+                document.getElementById('speedControl').value = p.speed;
+                document.getElementById('complexityControl').value = p.complexity;
+                document.getElementById('noiseControl').value = p.noise;
+                document.getElementById('speedValue').textContent = p.speed + 'x';
+                document.getElementById('complexityValue').textContent = p.complexity;
+                document.getElementById('noiseValue').textContent = p.noise.toFixed(2);
+
+                this.initializeMesh();
+            }
+
+            updateMeshColors() {
+                this.meshPoints.forEach((point, idx) => {
+                    point.color = this.state.colors[idx % this.state.colors.length];
+                });
+            }
+
+            randomizeSettings() {
+                const presetKeys = ['aurora', 'ocean', 'sunset', 'forest', 'neon', 'cosmic'];
+                const randomPreset = presetKeys[Math.floor(Math.random() * presetKeys.length)];
+                
+                const btns = document.querySelectorAll('.preset-btn');
+                btns.forEach(b => {
+                    if (b.dataset.preset === randomPreset) {
+                        b.click();
+                    }
+                });
+            }
+
+            downloadImage() {
+                const link = document.createElement('a');
+                link.href = this.canvas.toDataURL('image/png');
+                link.download = 'mesh-gradient-' + Date.now() + '.png';
+                link.click();
+            }
+
+            updateMesh() {
+                if (this.state.paused) return;
+
+                const w = this.canvas.width / (window.devicePixelRatio || 1);
+                const h = this.canvas.height / (window.devicePixelRatio || 1);
+                const time = this.state.time;
+
+                this.meshPoints.forEach((point, idx) => {
+                    const noise = Math.sin(time * 0.003 * this.state.speed + idx) * this.state.noise * 50;
+                    const noise2 = Math.cos(time * 0.002 * this.state.speed + idx * 0.5) * this.state.noise * 50;
+
+                    point.x += point.vx + noise * 0.01;
+                    point.y += point.vy + noise2 * 0.01;
+
+                    // Boundaries
+                    if (point.x < 0 || point.x > w) point.vx *= -1;
+                    if (point.y < 0 || point.y > h) point.vy *= -1;
+
+                    point.x = Math.max(0, Math.min(w, point.x));
+                    point.y = Math.max(0, Math.min(h, point.y));
+                });
+
+                // Update particles
+                if (this.state.particles) {
+                    this.particles.forEach((p, idx) => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.life -= 1 / 120;
+
+                        if (p.life <= 0) {
+                            p.x = Math.random() * w;
+                            p.y = Math.random() * h;
+                            p.life = p.maxLife;
+                        }
+
+                        if (p.x < 0 || p.x > w) p.vx *= -1;
+                        if (p.y < 0 || p.y > h) p.vy *= -1;
+                    });
+                }
+
+                this.state.time += this.state.speed;
+            }
+
+            drawMesh() {
+                const cols = this.state.complexity;
+                const w = this.canvas.width / (window.devicePixelRatio || 1);
+                const h = this.canvas.height / (window.devicePixelRatio || 1);
+
+                // Draw with blur if enabled
+                if (this.state.blur) {
+                    this.ctx.filter = 'blur(20px)';
+                } else {
+                    this.ctx.filter = 'none';
+                }
+
+                for (let i = 0; i < cols - 1; i++) {
+                    for (let j = 0; j < cols - 1; j++) {
+                        const idx = i * cols + j;
+                        const p1 = this.meshPoints[idx];
+                        const p2 = this.meshPoints[idx + 1];
+                        const p3 = this.meshPoints[idx + cols];
+                        const p4 = this.meshPoints[idx + cols + 1];
+
+                        if (p1 && p2 && p3 && p4) {
+                            const gradient = this.ctx.createLinearGradient(p1.x, p1.y, p4.x, p4.y);
+                            gradient.addColorStop(0, p1.color);
+                            gradient.addColorStop(0.5, p2.color);
+                            gradient.addColorStop(1, p4.color);
+
+                            this.ctx.fillStyle = gradient;
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(p1.x, p1.y);
+                            this.ctx.lineTo(p2.x, p2.y);
+                            this.ctx.lineTo(p4.x, p4.y);
+                            this.ctx.lineTo(p3.x, p3.y);
+                            this.ctx.fill();
+                        }
+                    }
+                }
+
+                this.ctx.filter = 'none';
+            }
+
+            drawParticles() {
+                this.particles.forEach(p => {
+                    const alpha = (p.life / p.maxLife) * 0.6;
+                    this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+            }
+
+            drawGlitch() {
+                if (!this.state.glitch) return;
+
+                const w = this.canvas.width / (window.devicePixelRatio || 1);
+                const glitchAmount = Math.sin(this.state.time * 0.02) * 10;
+                const imageData = this.ctx.getImageData(0, 0, w, this.canvas.height / (window.devicePixelRatio || 1));
+
+                this.ctx.putImageData(imageData, glitchAmount, 0);
+                this.ctx.putImageData(imageData, glitchAmount * -0.5, 2);
+            }
+
+            animate() {
+                const now = performance.now();
+                const delta = now - this.lastFrameTime;
+                this.frameCount++;
+
+                if (delta >= 1000) {
+                    this.fps = Math.round(this.frameCount * (1000 / delta));
+                    document.getElementById('fpsValue').textContent = this.fps;
+                    this.frameCount = 0;
+                    this.lastFrameTime = now;
+                }
+
+                // Update time display
+                const seconds = Math.floor(this.state.time / 60);
+                document.getElementById('timeValue').textContent = seconds + 's';
+
+                // Clear canvas
+                this.ctx.fillStyle = 'rgba(10, 14, 39, 0.2)';
+                this.ctx.fillRect(0, 0, this.canvas.width / (window.devicePixelRatio || 1), this.canvas.height / (window.devicePixelRatio || 1));
+
+                this.updateMesh();
+                this.drawMesh();
+                if (this.state.particles) this.drawParticles();
+                if (this.state.glitch) this.drawGlitch();
+
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // Initialize playground
+        new MeshGradientPlayground();
+    </script>
+</body>
+</html>

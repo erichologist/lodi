@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Animated Mesh Gradient Playground</title>
+  <style>
+    :root {
+      --panel-bg: rgba(16, 20, 30, 0.82);
+      --panel-border: rgba(255, 255, 255, 0.13);
+      --text: #e9ecf5;
+      --muted: #a6afc4;
+      --accent: #8ab4ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #070b14;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    #app {
+      position: fixed;
+      inset: 0;
+    }
+
+    #meshCanvas {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      touch-action: none;
+      cursor: grab;
+    }
+
+    #meshCanvas.dragging {
+      cursor: grabbing;
+    }
+
+    #panel {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      width: min(360px, calc(100vw - 32px));
+      max-height: calc(100vh - 32px);
+      overflow: auto;
+      padding: 14px;
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 14px 46px rgba(0, 0, 0, 0.35);
+    }
+
+    #panel h1 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: #d5ddf2;
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .row > label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .row > output {
+      min-width: 44px;
+      text-align: right;
+      font-size: 12px;
+      color: #d5def4;
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      margin: 0;
+    }
+
+    .range-wrap {
+      grid-column: 1 / -1;
+    }
+
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .palette input[type="color"] {
+      width: 100%;
+      min-height: 34px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 8px;
+      background: transparent;
+      padding: 0;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    button {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border-radius: 9px;
+      padding: 8px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .hint {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    @media (max-width: 780px) {
+      #panel {
+        left: 10px;
+        right: 10px;
+        width: auto;
+        top: auto;
+        bottom: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="meshCanvas"></canvas>
+  </div>
+
+  <aside id="panel">
+    <h1>Mesh Gradient Playground</h1>
+    <div class="controls">
+      <div class="row">
+        <label for="points">Points</label>
+        <output id="pointsOut">8</output>
+        <div class="range-wrap">
+          <input id="points" type="range" min="3" max="16" value="8" step="1" />
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="speed">Motion Speed</label>
+        <output id="speedOut">0.70</output>
+        <div class="range-wrap">
+          <input id="speed" type="range" min="0" max="2" value="0.7" step="0.01" />
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="radius">Blob Radius</label>
+        <output id="radiusOut">0.31</output>
+        <div class="range-wrap">
+          <input id="radius" type="range" min="0.12" max="0.55" value="0.31" step="0.01" />
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="blur">Softness</label>
+        <output id="blurOut">80</output>
+        <div class="range-wrap">
+          <input id="blur" type="range" min="0" max="160" value="80" step="1" />
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="saturation">Saturation</label>
+        <output id="saturationOut">125%</output>
+        <div class="range-wrap">
+          <input id="saturation" type="range" min="50" max="220" value="125" step="1" />
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="contrast">Contrast</label>
+        <output id="contrastOut">110%</output>
+        <div class="range-wrap">
+          <input id="contrast" type="range" min="70" max="180" value="110" step="1" />
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="noise">Noise Overlay</label>
+        <output id="noiseOut">0.06</output>
+        <div class="range-wrap">
+          <input id="noise" type="range" min="0" max="0.2" value="0.06" step="0.01" />
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="trails">Trails</label>
+        <output id="trailsOut">0.17</output>
+        <div class="range-wrap">
+          <input id="trails" type="range" min="0" max="0.35" value="0.17" step="0.01" />
+        </div>
+      </div>
+
+      <div class="row">
+        <label>Palette</label>
+      </div>
+      <div class="palette">
+        <input type="color" class="color" value="#5ea3ff" />
+        <input type="color" class="color" value="#4ce3d2" />
+        <input type="color" class="color" value="#b178ff" />
+        <input type="color" class="color" value="#ff70a8" />
+      </div>
+
+      <div class="buttons">
+        <button id="pauseBtn">Pause</button>
+        <button id="randomBtn">Randomize</button>
+        <button id="resetBtn">Reset</button>
+        <button id="saveBtn">Export PNG</button>
+      </div>
+
+      <div class="hint">
+        Drag any point directly on the canvas. Use Randomize for instant palettes and motion states.
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    const canvas = document.getElementById("meshCanvas");
+    const ctx = canvas.getContext("2d", { alpha: false });
+    const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
+
+    const controls = {
+      points: document.getElementById("points"),
+      speed: document.getElementById("speed"),
+      radius: document.getElementById("radius"),
+      blur: document.getElementById("blur"),
+      saturation: document.getElementById("saturation"),
+      contrast: document.getElementById("contrast"),
+      noise: document.getElementById("noise"),
+      trails: document.getElementById("trails"),
+    };
+
+    const outputs = {
+      points: document.getElementById("pointsOut"),
+      speed: document.getElementById("speedOut"),
+      radius: document.getElementById("radiusOut"),
+      blur: document.getElementById("blurOut"),
+      saturation: document.getElementById("saturationOut"),
+      contrast: document.getElementById("contrastOut"),
+      noise: document.getElementById("noiseOut"),
+      trails: document.getElementById("trailsOut"),
+    };
+
+    const colorInputs = [...document.querySelectorAll(".color")];
+    const pauseBtn = document.getElementById("pauseBtn");
+    const randomBtn = document.getElementById("randomBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const saveBtn = document.getElementById("saveBtn");
+
+    const defaults = {
+      points: 8,
+      speed: 0.7,
+      radius: 0.31,
+      blur: 80,
+      saturation: 125,
+      contrast: 110,
+      noise: 0.06,
+      trails: 0.17,
+      colors: ["#5ea3ff", "#4ce3d2", "#b178ff", "#ff70a8"],
+    };
+
+    const state = {
+      w: 1,
+      h: 1,
+      running: true,
+      points: [],
+      dragIndex: -1,
+      palette: [...defaults.colors],
+      noiseTexture: null,
+    };
+
+    const rand = (min, max) => Math.random() * (max - min) + min;
+
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+    function hexToRgb(hex) {
+      const m = hex.replace("#", "");
+      const full = m.length === 3 ? m.split("").map((c) => c + c).join("") : m;
+      const int = parseInt(full, 16);
+      return {
+        r: (int >> 16) & 255,
+        g: (int >> 8) & 255,
+        b: int & 255,
+      };
+    }
+
+    function hslToHex(h, s, l) {
+      const hh = ((h % 360) + 360) % 360;
+      const ss = clamp(s, 0, 100) / 100;
+      const ll = clamp(l, 0, 100) / 100;
+
+      const c = (1 - Math.abs(2 * ll - 1)) * ss;
+      const x = c * (1 - Math.abs((hh / 60) % 2 - 1));
+      const m = ll - c / 2;
+
+      let r = 0;
+      let g = 0;
+      let b = 0;
+
+      if (hh < 60) [r, g, b] = [c, x, 0];
+      else if (hh < 120) [r, g, b] = [x, c, 0];
+      else if (hh < 180) [r, g, b] = [0, c, x];
+      else if (hh < 240) [r, g, b] = [0, x, c];
+      else if (hh < 300) [r, g, b] = [x, 0, c];
+      else [r, g, b] = [c, 0, x];
+
+      const toHex = (v) => Math.round((v + m) * 255).toString(16).padStart(2, "0");
+      return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
+
+    function updateOutputText() {
+      outputs.points.textContent = controls.points.value;
+      outputs.speed.textContent = Number(controls.speed.value).toFixed(2);
+      outputs.radius.textContent = Number(controls.radius.value).toFixed(2);
+      outputs.blur.textContent = controls.blur.value;
+      outputs.saturation.textContent = `${controls.saturation.value}%`;
+      outputs.contrast.textContent = `${controls.contrast.value}%`;
+      outputs.noise.textContent = Number(controls.noise.value).toFixed(2);
+      outputs.trails.textContent = Number(controls.trails.value).toFixed(2);
+    }
+
+    function resize() {
+      state.w = Math.max(1, window.innerWidth);
+      state.h = Math.max(1, window.innerHeight);
+      canvas.width = Math.floor(state.w * dpr());
+      canvas.height = Math.floor(state.h * dpr());
+      canvas.style.width = `${state.w}px`;
+      canvas.style.height = `${state.h}px`;
+      ctx.setTransform(dpr(), 0, 0, dpr(), 0, 0);
+      state.noiseTexture = buildNoiseTexture(160, 160);
+    }
+
+    function buildNoiseTexture(w, h) {
+      const off = document.createElement("canvas");
+      off.width = w;
+      off.height = h;
+      const octx = off.getContext("2d");
+      const img = octx.createImageData(w, h);
+      for (let i = 0; i < img.data.length; i += 4) {
+        const n = (Math.random() * 255) | 0;
+        img.data[i] = n;
+        img.data[i + 1] = n;
+        img.data[i + 2] = n;
+        img.data[i + 3] = 255;
+      }
+      octx.putImageData(img, 0, 0);
+      return off;
+    }
+
+    function createPoint() {
+      return {
+        x: rand(0.1, 0.9),
+        y: rand(0.1, 0.9),
+        vx: rand(-0.18, 0.18),
+        vy: rand(-0.18, 0.18),
+        wobbleX: rand(0, Math.PI * 2),
+        wobbleY: rand(0, Math.PI * 2),
+      };
+    }
+
+    function syncPointCount() {
+      const target = Number(controls.points.value);
+      while (state.points.length < target) state.points.push(createPoint());
+      while (state.points.length > target) state.points.pop();
+    }
+
+    function resetControls() {
+      controls.points.value = defaults.points;
+      controls.speed.value = defaults.speed;
+      controls.radius.value = defaults.radius;
+      controls.blur.value = defaults.blur;
+      controls.saturation.value = defaults.saturation;
+      controls.contrast.value = defaults.contrast;
+      controls.noise.value = defaults.noise;
+      controls.trails.value = defaults.trails;
+      state.palette = [...defaults.colors];
+      colorInputs.forEach((input, i) => input.value = state.palette[i]);
+      state.points = [];
+      syncPointCount();
+      updateOutputText();
+    }
+
+    function randomPalette() {
+      const h = Math.random() * 360;
+      return Array.from({ length: 4 }, (_, i) => {
+        const hue = (h + i * rand(38, 102)) % 360;
+        const sat = rand(65, 95);
+        const light = rand(56, 70);
+        return hslToHex(hue, sat, light);
+      });
+    }
+
+    function randomize() {
+      controls.points.value = (rand(5, 13) | 0);
+      controls.speed.value = rand(0.2, 1.5).toFixed(2);
+      controls.radius.value = rand(0.2, 0.45).toFixed(2);
+      controls.blur.value = (rand(35, 130) | 0);
+      controls.saturation.value = (rand(95, 185) | 0);
+      controls.contrast.value = (rand(90, 145) | 0);
+      controls.noise.value = rand(0.01, 0.12).toFixed(2);
+      controls.trails.value = rand(0.05, 0.3).toFixed(2);
+
+      const colors = randomPalette();
+      state.palette = colors;
+      colorInputs.forEach((input, i) => {
+        input.value = colors[i];
+      });
+
+      state.points = [];
+      syncPointCount();
+      updateOutputText();
+    }
+
+    function updatePoints(dt) {
+      const speed = Number(controls.speed.value);
+      const t = performance.now() * 0.001;
+      for (let i = 0; i < state.points.length; i++) {
+        if (i === state.dragIndex) continue;
+        const p = state.points[i];
+        p.x += p.vx * dt * speed * 0.35;
+        p.y += p.vy * dt * speed * 0.35;
+        p.x += Math.sin(t * 0.9 + p.wobbleX) * 0.00045 * speed;
+        p.y += Math.cos(t * 1.1 + p.wobbleY) * 0.00045 * speed;
+
+        if (p.x < 0.03 || p.x > 0.97) p.vx *= -1;
+        if (p.y < 0.03 || p.y > 0.97) p.vy *= -1;
+
+        p.x = clamp(p.x, 0.02, 0.98);
+        p.y = clamp(p.y, 0.02, 0.98);
+      }
+    }
+
+    function drawGradientBlob(x, y, radiusPx, rgb) {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, radiusPx);
+      g.addColorStop(0, `rgba(${rgb.r},${rgb.g},${rgb.b},0.9)`);
+      g.addColorStop(0.55, `rgba(${rgb.r},${rgb.g},${rgb.b},0.34)`);
+      g.addColorStop(1, `rgba(${rgb.r},${rgb.g},${rgb.b},0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, radiusPx, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function render() {
+      const trails = Number(controls.trails.value);
+      ctx.filter = "none";
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = `rgba(6, 10, 18, ${clamp(1 - trails, 0.05, 1).toFixed(3)})`;
+      ctx.fillRect(0, 0, state.w, state.h);
+
+      ctx.filter = `blur(${Number(controls.blur.value)}px) saturate(${controls.saturation.value}%) contrast(${controls.contrast.value}%)`;
+      ctx.globalCompositeOperation = "screen";
+
+      const radiusPx = Number(controls.radius.value) * Math.max(state.w, state.h);
+      for (let i = 0; i < state.points.length; i++) {
+        const p = state.points[i];
+        const color = state.palette[i % state.palette.length];
+        const rgb = hexToRgb(color);
+        drawGradientBlob(p.x * state.w, p.y * state.h, radiusPx, rgb);
+      }
+
+      ctx.filter = "none";
+      ctx.globalCompositeOperation = "overlay";
+      const noiseA = Number(controls.noise.value);
+      if (noiseA > 0 && state.noiseTexture) {
+        ctx.globalAlpha = noiseA;
+        const pattern = ctx.createPattern(state.noiseTexture, "repeat");
+        ctx.fillStyle = pattern;
+        ctx.fillRect(0, 0, state.w, state.h);
+        ctx.globalAlpha = 1;
+      }
+
+      ctx.globalCompositeOperation = "source-over";
+    }
+
+    function nearestPoint(nx, ny) {
+      let idx = -1;
+      let best = Infinity;
+      for (let i = 0; i < state.points.length; i++) {
+        const p = state.points[i];
+        const dx = p.x - nx;
+        const dy = p.y - ny;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < best) {
+          best = d2;
+          idx = i;
+        }
+      }
+      return best < 0.025 ? idx : -1;
+    }
+
+    function pointerToNorm(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: clamp((e.clientX - rect.left) / rect.width, 0, 1),
+        y: clamp((e.clientY - rect.top) / rect.height, 0, 1),
+      };
+    }
+
+    function onPointerDown(e) {
+      const n = pointerToNorm(e);
+      state.dragIndex = nearestPoint(n.x, n.y);
+      if (state.dragIndex !== -1) {
+        canvas.classList.add("dragging");
+        canvas.setPointerCapture(e.pointerId);
+        state.points[state.dragIndex].x = n.x;
+        state.points[state.dragIndex].y = n.y;
+      }
+    }
+
+    function onPointerMove(e) {
+      if (state.dragIndex === -1) return;
+      const n = pointerToNorm(e);
+      state.points[state.dragIndex].x = n.x;
+      state.points[state.dragIndex].y = n.y;
+    }
+
+    function onPointerUp(e) {
+      if (state.dragIndex !== -1) {
+        state.dragIndex = -1;
+        canvas.classList.remove("dragging");
+      }
+      try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+    }
+
+    let last = performance.now();
+    function tick(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      if (state.running) updatePoints(dt);
+      render();
+      requestAnimationFrame(tick);
+    }
+
+    function bindEvents() {
+      window.addEventListener("resize", resize);
+
+      Object.entries(controls).forEach(([key, input]) => {
+        input.addEventListener("input", () => {
+          if (key === "points") syncPointCount();
+          updateOutputText();
+        });
+      });
+
+      colorInputs.forEach((input, i) => {
+        input.addEventListener("input", () => {
+          state.palette[i] = input.value;
+        });
+      });
+
+      canvas.addEventListener("pointerdown", onPointerDown);
+      canvas.addEventListener("pointermove", onPointerMove);
+      canvas.addEventListener("pointerup", onPointerUp);
+      canvas.addEventListener("pointercancel", onPointerUp);
+      canvas.addEventListener("pointerleave", onPointerUp);
+
+      pauseBtn.addEventListener("click", () => {
+        state.running = !state.running;
+        pauseBtn.textContent = state.running ? "Pause" : "Play";
+      });
+
+      randomBtn.addEventListener("click", randomize);
+      resetBtn.addEventListener("click", resetControls);
+
+      saveBtn.addEventListener("click", () => {
+        const a = document.createElement("a");
+        a.href = canvas.toDataURL("image/png");
+        a.download = `mesh-gradient-${Date.now()}.png`;
+        a.click();
+      });
+    }
+
+    resize();
+    bindEvents();
+    resetControls();
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

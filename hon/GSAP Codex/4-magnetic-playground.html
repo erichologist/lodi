@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GSAP Magnetic Playground</title>
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --text: #e6ebf6;
+      --muted: #91a0ba;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, system-ui, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #1a2440, var(--bg) 48%);
+      color: var(--text);
+      overflow: hidden;
+    }
+    .header {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 2;
+      background: #121a2acc;
+      border: 1px solid #2d3a57;
+      border-radius: 12px;
+      padding: 12px 14px;
+      backdrop-filter: blur(8px);
+    }
+    .header h1 { margin: 0 0 4px; font-size: 1rem; }
+    .header p { margin: 0; color: var(--muted); font-size: .88rem; }
+    #field {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    .orb {
+      position: absolute;
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #7b61ff, #42d3ff);
+      box-shadow: 0 10px 25px rgba(66, 211, 255, 0.22);
+      will-change: transform;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Magnetic Elements Playground</h1>
+    <p>Move the mouse and watch 10 floating divs pull toward the cursor.</p>
+  </div>
+  <div id="field"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script>
+    const field = document.getElementById("field");
+    const orbs = [];
+    const state = [];
+    const setX = [];
+    const setY = [];
+    const N = 10;
+
+    for (let i = 0; i < N; i++) {
+      const el = document.createElement("div");
+      el.className = "orb";
+      const x = Math.random() * (window.innerWidth - 60) + 10;
+      const y = Math.random() * (window.innerHeight - 60) + 10;
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      field.appendChild(el);
+      orbs.push(el);
+      state.push({ homeX: x, homeY: y, tx: 0, ty: 0 });
+      setX.push(gsap.quickSetter(el, "x", "px"));
+      setY.push(gsap.quickSetter(el, "y", "px"));
+    }
+
+    const maxPull = 95;
+    const influence = 180;
+
+    function update(mx, my) {
+      for (let i = 0; i < N; i++) {
+        const s = state[i];
+        const dx = mx - s.homeX;
+        const dy = my - s.homeY;
+        const dist = Math.hypot(dx, dy) || 1;
+        const force = Math.max(0, 1 - dist / influence);
+        const targetX = (dx / dist) * maxPull * force;
+        const targetY = (dy / dist) * maxPull * force;
+        s.tx += (targetX - s.tx) * 0.18;
+        s.ty += (targetY - s.ty) * 0.18;
+        setX[i](s.tx);
+        setY[i](s.ty);
+      }
+    }
+
+    window.addEventListener("mousemove", (e) => update(e.clientX, e.clientY));
+
+    window.addEventListener("mouseleave", () => {
+      gsap.to(state, {
+        tx: 0,
+        ty: 0,
+        duration: 0.8,
+        ease: "power3.out",
+        onUpdate: () => {
+          for (let i = 0; i < N; i++) {
+            setX[i](state[i].tx);
+            setY[i](state[i].ty);
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mesh Gradient Playground</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --panel-bg: rgba(18, 20, 28, 0.72);
+      --panel-border: rgba(255, 255, 255, 0.16);
+      --text: #f6f7fb;
+      --muted: #a7adbf;
+      --accent: #7ea2ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #06070a;
+      color: var(--text);
+    }
+
+    #app {
+      position: fixed;
+      inset: 0;
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    .panel {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      width: min(360px, calc(100vw - 32px));
+      max-height: calc(100vh - 32px);
+      overflow: auto;
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 12px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
+      transition: transform 220ms ease, opacity 220ms ease;
+    }
+
+    .panel.collapsed {
+      transform: translateY(calc(-100% - 18px));
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 0;
+    }
+
+    .group {
+      margin: 8px 0 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .value {
+      font-size: 12px;
+      color: var(--text);
+      min-width: 52px;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      margin: 2px 0 4px;
+    }
+
+    .title {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0 0 10px;
+      letter-spacing: 0.2px;
+    }
+
+    .btns {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    button, select, input[type="color"] {
+      border-radius: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.09);
+      color: var(--text);
+      padding: 7px 10px;
+      font-size: 13px;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .hint {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .toggle-panel {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 10;
+    }
+
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 34px;
+      padding: 3px;
+      cursor: pointer;
+      background: transparent;
+    }
+
+    .status {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: #dfe6ff;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(18, 20, 28, 0.65);
+      backdrop-filter: blur(10px);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="mesh"></canvas>
+
+    <button class="toggle-panel" id="togglePanel">Hide Controls</button>
+    <div class="panel" id="panel">
+      <h1 class="title">Animated Mesh Gradient Playground</h1>
+      <div class="btns">
+        <button id="togglePlay">Pause</button>
+        <button id="shuffle">Shuffle Mesh</button>
+        <button id="randomize">Random Palette</button>
+        <button id="snapshot">Save PNG</button>
+      </div>
+      <div class="row">
+        <label class="label" for="preset">Preset</label>
+        <select id="preset">
+          <option value="aurora">Aurora</option>
+          <option value="sunset">Sunset</option>
+          <option value="ocean">Ocean</option>
+          <option value="neon">Neon</option>
+          <option value="mono">Monochrome</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <div class="label">Palette</div>
+        <div class="swatches">
+          <input type="color" id="color0" value="#ff6d7a" />
+          <input type="color" id="color1" value="#ffb86b" />
+          <input type="color" id="color2" value="#66d6ff" />
+          <input type="color" id="color3" value="#9f78ff" />
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="row">
+          <label class="label" for="points">Points</label>
+          <span class="value" id="pointsOut"></span>
+        </div>
+        <input type="range" id="points" min="3" max="16" step="1" value="8" />
+
+        <div class="row">
+          <label class="label" for="speed">Speed</label>
+          <span class="value" id="speedOut"></span>
+        </div>
+        <input type="range" id="speed" min="0" max="2.5" step="0.01" value="0.75" />
+
+        <div class="row">
+          <label class="label" for="radius">Blob Radius</label>
+          <span class="value" id="radiusOut"></span>
+        </div>
+        <input type="range" id="radius" min="80" max="520" step="1" value="230" />
+
+        <div class="row">
+          <label class="label" for="alpha">Blend Strength</label>
+          <span class="value" id="alphaOut"></span>
+        </div>
+        <input type="range" id="alpha" min="0.1" max="1" step="0.01" value="0.65" />
+
+        <div class="row">
+          <label class="label" for="blur">Blur</label>
+          <span class="value" id="blurOut"></span>
+        </div>
+        <input type="range" id="blur" min="0" max="80" step="1" value="38" />
+      </div>
+
+      <div class="group">
+        <div class="row">
+          <label class="label" for="sat">Saturation</label>
+          <span class="value" id="satOut"></span>
+        </div>
+        <input type="range" id="sat" min="40" max="260" step="1" value="170" />
+
+        <div class="row">
+          <label class="label" for="light">Lightness</label>
+          <span class="value" id="lightOut"></span>
+        </div>
+        <input type="range" id="light" min="30" max="80" step="1" value="56" />
+
+        <div class="row">
+          <label class="label" for="trail">Trail Fade</label>
+          <span class="value" id="trailOut"></span>
+        </div>
+        <input type="range" id="trail" min="0" max="0.25" step="0.005" value="0.08" />
+      </div>
+
+      <p class="hint">Drag points directly on canvas. Double click anywhere to add a point. Alt + click nearest point to remove it.</p>
+    </div>
+    <div class="status" id="status">Running</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("mesh");
+    const ctx = canvas.getContext("2d");
+    const panel = document.getElementById("panel");
+    const statusEl = document.getElementById("status");
+
+    const controls = {
+      points: document.getElementById("points"),
+      speed: document.getElementById("speed"),
+      radius: document.getElementById("radius"),
+      alpha: document.getElementById("alpha"),
+      blur: document.getElementById("blur"),
+      sat: document.getElementById("sat"),
+      light: document.getElementById("light"),
+      trail: document.getElementById("trail")
+    };
+
+    const outputs = {
+      points: document.getElementById("pointsOut"),
+      speed: document.getElementById("speedOut"),
+      radius: document.getElementById("radiusOut"),
+      alpha: document.getElementById("alphaOut"),
+      blur: document.getElementById("blurOut"),
+      sat: document.getElementById("satOut"),
+      light: document.getElementById("lightOut"),
+      trail: document.getElementById("trailOut")
+    };
+
+    const colorInputs = [0, 1, 2, 3].map((i) => document.getElementById(`color${i}`));
+    const presetSelect = document.getElementById("preset");
+
+    const state = {
+      running: true,
+      dpr: Math.min(window.devicePixelRatio || 1, 2),
+      width: window.innerWidth,
+      height: window.innerHeight,
+      points: Number(controls.points.value),
+      speed: Number(controls.speed.value),
+      radius: Number(controls.radius.value),
+      alpha: Number(controls.alpha.value),
+      blur: Number(controls.blur.value),
+      sat: Number(controls.sat.value),
+      light: Number(controls.light.value),
+      trail: Number(controls.trail.value),
+      palette: colorInputs.map((el) => el.value),
+      mesh: [],
+      dragId: null,
+      nextId: 0,
+      lastTime: performance.now()
+    };
+
+    const presets = {
+      aurora: ["#a855f7", "#06b6d4", "#22c55e", "#2563eb"],
+      sunset: ["#ff6b6b", "#ff9f43", "#feca57", "#ee5253"],
+      ocean: ["#0047ab", "#00a8ff", "#48dbfb", "#1dd1a1"],
+      neon: ["#ff00cc", "#00f5d4", "#f9f871", "#7c4dff"],
+      mono: ["#4f46e5", "#6366f1", "#818cf8", "#a5b4fc"]
+    };
+
+    function hexToHsl(hex) {
+      const clean = hex.replace("#", "");
+      const bigint = Number.parseInt(clean, 16);
+      const r = ((bigint >> 16) & 255) / 255;
+      const g = ((bigint >> 8) & 255) / 255;
+      const b = (bigint & 255) / 255;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      let h = 0;
+      const l = (max + min) / 2;
+      const d = max - min;
+      let s = 0;
+
+      if (d !== 0) {
+        s = d / (1 - Math.abs(2 * l - 1));
+        switch (max) {
+          case r:
+            h = 60 * (((g - b) / d) % 6);
+            break;
+          case g:
+            h = 60 * ((b - r) / d + 2);
+            break;
+          default:
+            h = 60 * ((r - g) / d + 4);
+        }
+      }
+      if (h < 0) h += 360;
+      return { h, s: s * 100, l: l * 100 };
+    }
+
+    function rand(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function hslToHex(h, s, l) {
+      const sat = s / 100;
+      const lig = l / 100;
+      const c = (1 - Math.abs(2 * lig - 1)) * sat;
+      const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+      const m = lig - c / 2;
+      let r = 0;
+      let g = 0;
+      let b = 0;
+
+      if (h < 60) [r, g, b] = [c, x, 0];
+      else if (h < 120) [r, g, b] = [x, c, 0];
+      else if (h < 180) [r, g, b] = [0, c, x];
+      else if (h < 240) [r, g, b] = [0, x, c];
+      else if (h < 300) [r, g, b] = [x, 0, c];
+      else [r, g, b] = [c, 0, x];
+
+      const toHex = (v) => Math.round((v + m) * 255).toString(16).padStart(2, "0");
+      return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
+
+    function resize() {
+      state.width = window.innerWidth;
+      state.height = window.innerHeight;
+      canvas.width = Math.floor(state.width * state.dpr);
+      canvas.height = Math.floor(state.height * state.dpr);
+      canvas.style.width = `${state.width}px`;
+      canvas.style.height = `${state.height}px`;
+      ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+    }
+
+    function createPoint() {
+      const id = state.nextId;
+      state.nextId += 1;
+      const color = state.palette[id % state.palette.length];
+      const hsl = hexToHsl(color);
+      const maxV = 0.35;
+      return {
+        id,
+        x: rand(0, state.width),
+        y: rand(0, state.height),
+        vx: rand(-maxV, maxV),
+        vy: rand(-maxV, maxV),
+        hue: hsl.h
+      };
+    }
+
+    function seedMesh(count = state.points) {
+      state.nextId = 0;
+      state.mesh = Array.from({ length: count }, () => createPoint());
+    }
+
+    function setMeshCount(count) {
+      const current = state.mesh.length;
+      if (count > current) {
+        for (let i = current; i < count; i += 1) state.mesh.push(createPoint());
+      } else if (count < current) {
+        state.mesh.length = count;
+      }
+      state.points = count;
+      controls.points.value = String(count);
+      paintControlValues();
+    }
+
+    function paintControlValues() {
+      outputs.points.textContent = String(state.points);
+      outputs.speed.textContent = state.speed.toFixed(2);
+      outputs.radius.textContent = `${Math.round(state.radius)}px`;
+      outputs.alpha.textContent = state.alpha.toFixed(2);
+      outputs.blur.textContent = `${Math.round(state.blur)}px`;
+      outputs.sat.textContent = `${Math.round(state.sat)}%`;
+      outputs.light.textContent = `${Math.round(state.light)}%`;
+      outputs.trail.textContent = state.trail.toFixed(3);
+      statusEl.textContent = state.running ? "Running" : "Paused";
+    }
+
+    function drawBlob(point) {
+      const grad = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, state.radius);
+      grad.addColorStop(0, `hsla(${point.hue.toFixed(0)} ${state.sat}% ${state.light}% / ${state.alpha})`);
+      grad.addColorStop(1, `hsla(${point.hue.toFixed(0)} ${state.sat}% ${state.light}% / 0)`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(point.x - state.radius, point.y - state.radius, state.radius * 2, state.radius * 2);
+    }
+
+    function update(dt) {
+      const speedMul = state.speed * dt * 0.08;
+      for (const point of state.mesh) {
+        point.x += point.vx * speedMul * 60;
+        point.y += point.vy * speedMul * 60;
+        point.hue = (point.hue + 0.15 * speedMul) % 360;
+
+        if (point.x < -state.radius * 0.2 || point.x > state.width + state.radius * 0.2) point.vx *= -1;
+        if (point.y < -state.radius * 0.2 || point.y > state.height + state.radius * 0.2) point.vy *= -1;
+      }
+    }
+
+    function render() {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = `rgba(6, 7, 10, ${Math.max(0.03, state.trail)})`;
+      ctx.fillRect(0, 0, state.width, state.height);
+
+      ctx.globalCompositeOperation = "lighter";
+      ctx.filter = `blur(${state.blur}px) saturate(${Math.max(40, state.sat)}%)`;
+      for (const point of state.mesh) drawBlob(point);
+      ctx.filter = "none";
+
+      // Subtle guides for direct manipulation.
+      ctx.globalCompositeOperation = "source-over";
+      for (const point of state.mesh) {
+        ctx.beginPath();
+        ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
+        ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function tick(time) {
+      const dt = Math.min(32, time - state.lastTime);
+      state.lastTime = time;
+      if (state.running) update(dt);
+      render();
+      requestAnimationFrame(tick);
+    }
+
+    function randomPalette() {
+      const base = rand(0, 360);
+      const nextPalette = [0, 1, 2, 3].map((i) => {
+        const hue = (base + i * rand(50, 120)) % 360;
+        return hslToHex(hue, 95, 62);
+      });
+      nextPalette.forEach((color, i) => {
+        colorInputs[i].value = color;
+      });
+      applyPalette();
+    }
+
+    function applyPalette() {
+      state.palette = colorInputs.map((el) => el.value);
+      state.mesh.forEach((point, idx) => {
+        point.hue = hexToHsl(state.palette[idx % state.palette.length]).h;
+      });
+    }
+
+    function applyPreset(name) {
+      const palette = presets[name];
+      if (!palette) return;
+      palette.forEach((hex, i) => {
+        colorInputs[i].value = hex;
+      });
+      applyPalette();
+    }
+
+    function nearestPoint(x, y) {
+      let winner = null;
+      let best = Infinity;
+      for (const point of state.mesh) {
+        const d2 = (point.x - x) ** 2 + (point.y - y) ** 2;
+        if (d2 < best) {
+          best = d2;
+          winner = point;
+        }
+      }
+      return { point: winner, distance: Math.sqrt(best) };
+    }
+
+    function bindEvents() {
+      window.addEventListener("resize", resize);
+
+      Object.entries(controls).forEach(([key, input]) => {
+        input.addEventListener("input", () => {
+          state[key] = Number(input.value);
+          if (key === "points") setMeshCount(state.points);
+          paintControlValues();
+        });
+      });
+
+      colorInputs.forEach((input) => input.addEventListener("input", applyPalette));
+
+      document.getElementById("togglePlay").addEventListener("click", (e) => {
+        state.running = !state.running;
+        e.currentTarget.textContent = state.running ? "Pause" : "Play";
+        paintControlValues();
+      });
+
+      document.getElementById("shuffle").addEventListener("click", () => {
+        seedMesh(state.points);
+      });
+
+      document.getElementById("randomize").addEventListener("click", randomPalette);
+
+      document.getElementById("snapshot").addEventListener("click", () => {
+        const a = document.createElement("a");
+        a.download = `mesh-gradient-${Date.now()}.png`;
+        a.href = canvas.toDataURL("image/png");
+        a.click();
+      });
+
+      presetSelect.addEventListener("change", () => {
+        applyPreset(presetSelect.value);
+      });
+
+      document.getElementById("togglePanel").addEventListener("click", (e) => {
+        panel.classList.toggle("collapsed");
+        e.currentTarget.textContent = panel.classList.contains("collapsed") ? "Show Controls" : "Hide Controls";
+      });
+
+      canvas.addEventListener("pointerdown", (e) => {
+        const { point, distance } = nearestPoint(e.clientX, e.clientY);
+        if (e.altKey && point && distance < 120 && state.mesh.length > 3) {
+          state.mesh = state.mesh.filter((p) => p !== point);
+          setMeshCount(state.mesh.length);
+          return;
+        }
+        if (point && distance < 80) {
+          state.dragId = point.id;
+          canvas.setPointerCapture(e.pointerId);
+        }
+      });
+
+      canvas.addEventListener("pointermove", (e) => {
+        if (state.dragId == null) return;
+        const point = state.mesh.find((p) => p.id === state.dragId);
+        if (!point) return;
+        point.x = e.clientX;
+        point.y = e.clientY;
+      });
+
+      canvas.addEventListener("pointerup", (e) => {
+        state.dragId = null;
+        if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+      });
+
+      canvas.addEventListener("dblclick", (e) => {
+        if (state.mesh.length >= 16) return;
+        const point = createPoint();
+        point.x = e.clientX;
+        point.y = e.clientY;
+        state.mesh.push(point);
+        setMeshCount(state.mesh.length);
+      });
+    }
+
+    resize();
+    seedMesh();
+    applyPreset("aurora");
+    bindEvents();
+    paintControlValues();
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

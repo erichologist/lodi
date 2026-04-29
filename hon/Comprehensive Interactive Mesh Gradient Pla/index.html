@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Animated Mesh Gradient Playground</title>
+  <style>
+    :root {
+      --panel-bg: rgba(10, 12, 22, 0.72);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --text: #f6f8ff;
+      --muted: #b8bfd9;
+      --accent: #7c8cff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: #070810;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    #scene {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      cursor: crosshair;
+    }
+
+    .panel {
+      position: fixed;
+      z-index: 10;
+      top: 12px;
+      left: 12px;
+      width: min(360px, calc(100vw - 24px));
+      max-height: calc(100vh - 24px);
+      overflow: auto;
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(14px);
+      padding: 12px;
+      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.4);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      margin: 9px 0;
+    }
+
+    .row > label {
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .row output {
+      font-variant-numeric: tabular-nums;
+      font-size: 0.86rem;
+      color: var(--text);
+      min-width: 42px;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .row.range {
+      grid-template-columns: 1fr auto;
+    }
+
+    .row.range .control {
+      grid-column: 1 / -1;
+      margin-top: 3px;
+    }
+
+    .heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .heading h1 {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 0.2px;
+      font-weight: 650;
+    }
+
+    .sub {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.35;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    button,
+    select {
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font: inherit;
+      font-size: 0.88rem;
+    }
+
+    button:hover,
+    select:hover {
+      background: rgba(255, 255, 255, 0.11);
+    }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      margin-top: 8px;
+      user-select: none;
+    }
+
+    .hint {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.35;
+    }
+
+    .collapsed {
+      width: auto;
+      padding: 9px;
+      overflow: hidden;
+    }
+
+    .collapsed .content {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="scene" aria-label="Animated mesh gradient canvas"></canvas>
+
+  <aside class="panel" id="panel">
+    <div class="heading">
+      <h1>Mesh Gradient Playground</h1>
+      <button id="togglePanel" title="Collapse or expand controls">Hide</button>
+    </div>
+    <div class="content">
+      <p class="sub">Full-screen interactive mesh gradients. Drag points in edit mode, tweak animation, and randomize palettes.</p>
+
+      <div class="row">
+        <label for="palette">Palette</label>
+        <select id="palette"></select>
+      </div>
+
+      <div class="row range">
+        <label for="points">Points</label>
+        <output id="pointsOut"></output>
+        <input class="control" id="points" type="range" min="3" max="16" step="1" value="8" />
+      </div>
+
+      <div class="row range">
+        <label for="speed">Speed</label>
+        <output id="speedOut"></output>
+        <input class="control" id="speed" type="range" min="0" max="2.5" step="0.01" value="0.75" />
+      </div>
+
+      <div class="row range">
+        <label for="turbulence">Turbulence</label>
+        <output id="turbulenceOut"></output>
+        <input class="control" id="turbulence" type="range" min="0" max="2.2" step="0.01" value="0.85" />
+      </div>
+
+      <div class="row range">
+        <label for="radius">Blob Radius</label>
+        <output id="radiusOut"></output>
+        <input class="control" id="radius" type="range" min="0.1" max="0.65" step="0.01" value="0.28" />
+      </div>
+
+      <div class="row range">
+        <label for="blur">Blur</label>
+        <output id="blurOut"></output>
+        <input class="control" id="blur" type="range" min="0" max="80" step="1" value="42" />
+      </div>
+
+      <div class="row range">
+        <label for="saturation">Saturation</label>
+        <output id="saturationOut"></output>
+        <input class="control" id="saturation" type="range" min="0.4" max="2.8" step="0.01" value="1.25" />
+      </div>
+
+      <div class="row range">
+        <label for="brightness">Brightness</label>
+        <output id="brightnessOut"></output>
+        <input class="control" id="brightness" type="range" min="0.4" max="1.9" step="0.01" value="1.04" />
+      </div>
+
+      <label class="toggle">
+        <input id="editMode" type="checkbox" />
+        Edit mode (drag points)
+      </label>
+
+      <div class="buttons">
+        <button id="randomize">Randomize</button>
+        <button id="pause">Pause</button>
+        <button id="reset">Reset</button>
+      </div>
+
+      <p class="hint">
+        In edit mode: drag visible handles to shape the gradient mesh.<br />
+        Outside edit mode: click anywhere to burst the nearest point toward your cursor.
+      </p>
+    </div>
+  </aside>
+
+  <script>
+    const canvas = document.getElementById("scene");
+    const ctx = canvas.getContext("2d", { alpha: false });
+    const panel = document.getElementById("panel");
+    const togglePanelBtn = document.getElementById("togglePanel");
+
+    const controls = {
+      palette: document.getElementById("palette"),
+      points: document.getElementById("points"),
+      speed: document.getElementById("speed"),
+      turbulence: document.getElementById("turbulence"),
+      radius: document.getElementById("radius"),
+      blur: document.getElementById("blur"),
+      saturation: document.getElementById("saturation"),
+      brightness: document.getElementById("brightness"),
+      editMode: document.getElementById("editMode"),
+      randomize: document.getElementById("randomize"),
+      pause: document.getElementById("pause"),
+      reset: document.getElementById("reset"),
+      pointsOut: document.getElementById("pointsOut"),
+      speedOut: document.getElementById("speedOut"),
+      turbulenceOut: document.getElementById("turbulenceOut"),
+      radiusOut: document.getElementById("radiusOut"),
+      blurOut: document.getElementById("blurOut"),
+      saturationOut: document.getElementById("saturationOut"),
+      brightnessOut: document.getElementById("brightnessOut")
+    };
+
+    const palettes = {
+      Aurora: ["#66E3FF", "#8F7CFF", "#FF7CC8", "#FFE17A", "#7CFFCD"],
+      Dusk: ["#1A2A6C", "#B21F1F", "#FDBB2D", "#7F5AF0", "#2CB67D"],
+      Neon: ["#00F5D4", "#00BBF9", "#9B5DE5", "#F15BB5", "#FEE440"],
+      Ocean: ["#004E92", "#000428", "#1A759F", "#52B69A", "#76C893"],
+      Candy: ["#F72585", "#B5179E", "#7209B7", "#560BAD", "#4CC9F0"]
+    };
+
+    const baseSettings = {
+      points: 8,
+      speed: 0.75,
+      turbulence: 0.85,
+      radius: 0.28,
+      blur: 42,
+      saturation: 1.25,
+      brightness: 1.04,
+      editMode: false,
+      palette: "Aurora"
+    };
+
+    const state = {
+      width: 1,
+      height: 1,
+      dpr: Math.max(1, Math.min(2, window.devicePixelRatio || 1)),
+      settings: { ...baseSettings },
+      points: [],
+      playing: true,
+      pointer: { x: 0, y: 0, down: false },
+      dragIndex: -1,
+      lastTime: performance.now()
+    };
+
+    for (const name of Object.keys(palettes)) {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      controls.palette.append(option);
+    }
+    controls.palette.value = state.settings.palette;
+
+    function hexToRgb(hex) {
+      const h = hex.replace("#", "");
+      const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+      const val = Number.parseInt(full, 16);
+      return { r: (val >> 16) & 255, g: (val >> 8) & 255, b: val & 255 };
+    }
+
+    function rand(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function rebuildPoints(nextCount) {
+      const current = state.points.length;
+      const palette = palettes[state.settings.palette];
+      if (current < nextCount) {
+        for (let i = current; i < nextCount; i++) {
+          state.points.push({
+            x: rand(0.1, 0.9),
+            y: rand(0.1, 0.9),
+            vx: rand(-0.08, 0.08),
+            vy: rand(-0.08, 0.08),
+            phase: rand(0, Math.PI * 2),
+            color: hexToRgb(palette[i % palette.length]),
+            radiusJitter: rand(0.8, 1.25)
+          });
+        }
+      } else if (current > nextCount) {
+        state.points.length = nextCount;
+      }
+    }
+
+    function recolorPoints() {
+      const palette = palettes[state.settings.palette];
+      state.points.forEach((point, idx) => {
+        point.color = hexToRgb(palette[idx % palette.length]);
+      });
+    }
+
+    function syncControlValues() {
+      const s = state.settings;
+      controls.points.value = s.points;
+      controls.speed.value = s.speed;
+      controls.turbulence.value = s.turbulence;
+      controls.radius.value = s.radius;
+      controls.blur.value = s.blur;
+      controls.saturation.value = s.saturation;
+      controls.brightness.value = s.brightness;
+      controls.editMode.checked = s.editMode;
+      controls.palette.value = s.palette;
+
+      controls.pointsOut.value = s.points;
+      controls.speedOut.value = Number(s.speed).toFixed(2);
+      controls.turbulenceOut.value = Number(s.turbulence).toFixed(2);
+      controls.radiusOut.value = Number(s.radius).toFixed(2);
+      controls.blurOut.value = Number(s.blur).toFixed(0);
+      controls.saturationOut.value = Number(s.saturation).toFixed(2);
+      controls.brightnessOut.value = Number(s.brightness).toFixed(2);
+    }
+
+    function resetSettings() {
+      state.settings = { ...baseSettings };
+      state.playing = true;
+      controls.pause.textContent = "Pause";
+      rebuildPoints(state.settings.points);
+      recolorPoints();
+      syncControlValues();
+    }
+
+    function resize() {
+      state.width = window.innerWidth;
+      state.height = window.innerHeight;
+      canvas.width = Math.floor(state.width * state.dpr);
+      canvas.height = Math.floor(state.height * state.dpr);
+      canvas.style.width = `${state.width}px`;
+      canvas.style.height = `${state.height}px`;
+      ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+    }
+
+    function updatePoints(dtSeconds, nowSeconds) {
+      const speed = state.settings.speed;
+      const turb = state.settings.turbulence;
+      const amp = 0.09 * turb;
+
+      for (const p of state.points) {
+        if (state.playing) {
+          p.phase += dtSeconds * (0.7 + speed * 1.1);
+          p.vx += Math.cos(p.phase + p.y * 6.0) * amp * dtSeconds;
+          p.vy += Math.sin(p.phase + p.x * 6.0 + nowSeconds * 0.35) * amp * dtSeconds;
+          p.vx *= 0.985;
+          p.vy *= 0.985;
+          p.x += p.vx * dtSeconds * (0.35 + speed * 0.9);
+          p.y += p.vy * dtSeconds * (0.35 + speed * 0.9);
+        }
+
+        if (p.x < -0.04) {
+          p.x = -0.04;
+          p.vx = Math.abs(p.vx) * 0.9;
+        } else if (p.x > 1.04) {
+          p.x = 1.04;
+          p.vx = -Math.abs(p.vx) * 0.9;
+        }
+        if (p.y < -0.04) {
+          p.y = -0.04;
+          p.vy = Math.abs(p.vy) * 0.9;
+        } else if (p.y > 1.04) {
+          p.y = 1.04;
+          p.vy = -Math.abs(p.vy) * 0.9;
+        }
+      }
+    }
+
+    function draw(nowMs) {
+      const s = state.settings;
+      const nowSeconds = nowMs / 1000;
+      const dtSeconds = Math.min(0.05, (nowMs - state.lastTime) / 1000);
+      state.lastTime = nowMs;
+
+      updatePoints(dtSeconds, nowSeconds);
+
+      const w = state.width;
+      const h = state.height;
+      const minDim = Math.min(w, h);
+
+      ctx.save();
+      ctx.filter = `saturate(${s.saturation}) brightness(${s.brightness}) blur(${s.blur}px)`;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = "rgb(8, 10, 18)";
+      ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = "lighter";
+
+      for (const p of state.points) {
+        const x = p.x * w;
+        const y = p.y * h;
+        const radius = minDim * s.radius * p.radiusJitter;
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        const c = p.color;
+        gradient.addColorStop(0, `rgba(${c.r}, ${c.g}, ${c.b}, 0.78)`);
+        gradient.addColorStop(0.45, `rgba(${c.r}, ${c.g}, ${c.b}, 0.38)`);
+        gradient.addColorStop(1, `rgba(${c.r}, ${c.g}, ${c.b}, 0)`);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+      }
+      ctx.restore();
+
+      if (s.editMode) {
+        ctx.save();
+        ctx.globalCompositeOperation = "source-over";
+        for (let i = 0; i < state.points.length; i++) {
+          const p = state.points[i];
+          const x = p.x * w;
+          const y = p.y * h;
+          ctx.beginPath();
+          ctx.arc(x, y, 9, 0, Math.PI * 2);
+          ctx.fillStyle = i === state.dragIndex ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.66)";
+          ctx.fill();
+          ctx.strokeStyle = "rgba(0,0,0,0.45)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    function getPointer(event) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    }
+
+    function closestPointIndex(x, y) {
+      let best = -1;
+      let bestDist = Infinity;
+      for (let i = 0; i < state.points.length; i++) {
+        const p = state.points[i];
+        const dx = p.x * state.width - x;
+        const dy = p.y * state.height - y;
+        const d = dx * dx + dy * dy;
+        if (d < bestDist) {
+          bestDist = d;
+          best = i;
+        }
+      }
+      return best;
+    }
+
+    function onPointerDown(event) {
+      const pt = getPointer(event);
+      state.pointer = { ...pt, down: true };
+
+      if (state.settings.editMode) {
+        const idx = closestPointIndex(pt.x, pt.y);
+        if (idx > -1) {
+          const p = state.points[idx];
+          const handleRadius = 18;
+          const dx = p.x * state.width - pt.x;
+          const dy = p.y * state.height - pt.y;
+          if (dx * dx + dy * dy < handleRadius * handleRadius) {
+            state.dragIndex = idx;
+          }
+        }
+      } else {
+        const idx = closestPointIndex(pt.x, pt.y);
+        if (idx > -1) {
+          const p = state.points[idx];
+          const nx = pt.x / state.width;
+          const ny = pt.y / state.height;
+          p.vx += (nx - p.x) * 2.2;
+          p.vy += (ny - p.y) * 2.2;
+        }
+      }
+    }
+
+    function onPointerMove(event) {
+      const pt = getPointer(event);
+      state.pointer = { ...pt, down: state.pointer.down };
+      if (state.settings.editMode && state.dragIndex > -1) {
+        const p = state.points[state.dragIndex];
+        p.x = Math.max(0, Math.min(1, pt.x / state.width));
+        p.y = Math.max(0, Math.min(1, pt.y / state.height));
+        p.vx *= 0.7;
+        p.vy *= 0.7;
+      }
+    }
+
+    function onPointerUp() {
+      state.pointer.down = false;
+      state.dragIndex = -1;
+    }
+
+    function attachControl(input, key) {
+      input.addEventListener("input", () => {
+        const value = Number(input.value);
+        state.settings[key] = value;
+        syncControlValues();
+        if (key === "points") {
+          rebuildPoints(value);
+          recolorPoints();
+        }
+      });
+    }
+
+    attachControl(controls.points, "points");
+    attachControl(controls.speed, "speed");
+    attachControl(controls.turbulence, "turbulence");
+    attachControl(controls.radius, "radius");
+    attachControl(controls.blur, "blur");
+    attachControl(controls.saturation, "saturation");
+    attachControl(controls.brightness, "brightness");
+
+    controls.palette.addEventListener("change", () => {
+      state.settings.palette = controls.palette.value;
+      recolorPoints();
+      syncControlValues();
+    });
+
+    controls.editMode.addEventListener("change", () => {
+      state.settings.editMode = controls.editMode.checked;
+      syncControlValues();
+    });
+
+    controls.randomize.addEventListener("click", () => {
+      const names = Object.keys(palettes);
+      state.settings.palette = names[(Math.random() * names.length) | 0];
+      state.settings.speed = rand(0.25, 1.8);
+      state.settings.turbulence = rand(0.3, 1.8);
+      state.settings.radius = rand(0.15, 0.5);
+      state.settings.blur = rand(15, 65);
+      state.settings.saturation = rand(0.8, 2.4);
+      state.settings.brightness = rand(0.75, 1.35);
+      rebuildPoints(state.settings.points);
+      recolorPoints();
+      syncControlValues();
+      for (const p of state.points) {
+        p.vx = rand(-0.18, 0.18);
+        p.vy = rand(-0.18, 0.18);
+      }
+    });
+
+    controls.pause.addEventListener("click", () => {
+      state.playing = !state.playing;
+      controls.pause.textContent = state.playing ? "Pause" : "Play";
+    });
+
+    controls.reset.addEventListener("click", resetSettings);
+
+    togglePanelBtn.addEventListener("click", () => {
+      panel.classList.toggle("collapsed");
+      togglePanelBtn.textContent = panel.classList.contains("collapsed") ? "Show" : "Hide";
+    });
+
+    canvas.addEventListener("pointerdown", onPointerDown);
+    canvas.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
+    window.addEventListener("resize", resize);
+
+    resetSettings();
+    resize();
+    requestAnimationFrame((time) => {
+      state.lastTime = time;
+      draw(time);
+    });
+  </script>
+</body>
+</html>

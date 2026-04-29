@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GSAP Interactive Playground</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00d9ff;
+            --secondary: #ff006e;
+            --dark-bg: #0a0e27;
+            --card-bg: #1a1f3a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --accent: #ffbe0b;
+            --spacing: 1rem;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #16213e 100%);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: var(--spacing);
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: calc(var(--spacing) * 2);
+        }
+
+        header {
+            text-align: center;
+            padding: calc(var(--spacing) * 1.5) 0;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .demo-section {
+            background: var(--card-bg);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 12px;
+            padding: calc(var(--spacing) * 1.5);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing);
+        }
+
+        .demo-title {
+            font-size: 1.25rem;
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .demo-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Demo 1: Draggable with Snap */
+        .demo-draggable {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing);
+            min-height: 300px;
+        }
+
+        .draggable-area {
+            width: 100%;
+            max-width: 100%;
+            height: 250px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px dashed rgba(0, 217, 255, 0.4);
+            border-radius: 8px;
+            position: relative;
+            touch-action: none;
+        }
+
+        .draggable-box {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 8px;
+            cursor: grab;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            user-select: none;
+            -webkit-user-select: none;
+            box-shadow: 0 8px 24px rgba(255, 0, 110, 0.4);
+        }
+
+        .draggable-box:active {
+            cursor: grabbing;
+        }
+
+        /* Demo 2: Staggered Animation */
+        .demo-stagger {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing);
+        }
+
+        .stagger-button {
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: var(--dark-bg);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: box-shadow 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 217, 255, 0.3);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .stagger-button:active {
+            box-shadow: 0 8px 30px rgba(0, 217, 255, 0.5);
+            transform: scale(0.98);
+        }
+
+        .stagger-grid {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+            gap: var(--spacing);
+        }
+
+        .stagger-item {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, var(--accent), #ffd60a);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--dark-bg);
+            opacity: 0;
+            transform: translateY(20px);
+            box-shadow: 0 4px 12px rgba(255, 190, 11, 0.3);
+        }
+
+        /* Demo 3: ScrollTrigger */
+        .demo-scroll {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing);
+        }
+
+        .scroll-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: var(--spacing);
+            min-height: 400px;
+        }
+
+        .scroll-item {
+            background: rgba(255, 0, 110, 0.1);
+            border: 2px solid var(--secondary);
+            border-radius: 8px;
+            padding: var(--spacing);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(30px) scale(0.9);
+        }
+
+        .scroll-spacer {
+            height: 200px;
+        }
+
+        /* Desktop adjustments */
+        @media (min-width: 768px) {
+            :root {
+                --spacing: 1.5rem;
+            }
+
+            .container {
+                max-width: 1200px;
+                grid-template-columns: 1fr 1fr;
+                display: grid;
+                grid-auto-rows: max-content;
+            }
+
+            header {
+                grid-column: 1 / -1;
+            }
+
+            .demo-section {
+                padding: calc(var(--spacing) * 2);
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .demo-title {
+                font-size: 1.5rem;
+            }
+
+            .draggable-area {
+                height: 350px;
+            }
+
+            .scroll-content {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                min-height: 600px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            header {
+                grid-column: 1 / -1;
+            }
+        }
+
+        /* Utility classes */
+        .reset-btn {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            background: rgba(255, 190, 11, 0.1);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .reset-btn:active {
+            background: rgba(255, 190, 11, 0.3);
+            transform: scale(0.95);
+        }
+
+        .info-text {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GSAP Interactive Playground</h1>
+            <p class="subtitle">Mobile-first animations with GPU acceleration</p>
+        </header>
+
+        <!-- Demo 1: Draggable with Snap -->
+        <section class="demo-section">
+            <h2 class="demo-title">🎯 Draggable with Snap</h2>
+            <p class="demo-description">Drag the box. It snaps to predefined positions when released.</p>
+            <div class="draggable-area">
+                <div class="draggable-box">📦</div>
+            </div>
+            <button class="reset-btn" id="resetDraggable">Reset Position</button>
+            <p class="info-text">Uses gsap.utils.snap() for constrained movement</p>
+        </section>
+
+        <!-- Demo 2: Staggered Animation -->
+        <section class="demo-section">
+            <h2 class="demo-title">✨ Staggered Animation</h2>
+            <p class="demo-description">Click to trigger a staggered timeline animation.</p>
+            <button class="stagger-button" id="staggerBtn">Animate Items</button>
+            <div class="stagger-grid">
+                <div class="stagger-item">1</div>
+                <div class="stagger-item">2</div>
+                <div class="stagger-item">3</div>
+                <div class="stagger-item">4</div>
+                <div class="stagger-item">5</div>
+                <div class="stagger-item">6</div>
+            </div>
+            <p class="info-text">Timeline with staggered child animation</p>
+        </section>
+
+        <!-- Demo 3: ScrollTrigger -->
+        <section class="demo-section">
+            <h2 class="demo-title">🚀 ScrollTrigger Animation</h2>
+            <p class="demo-description">Scroll down to trigger animations. Desktop gets more complex effects.</p>
+            <div class="scroll-spacer"></div>
+            <div class="scroll-content">
+                <div class="scroll-item">Item 1</div>
+                <div class="scroll-item">Item 2</div>
+                <div class="scroll-item">Item 3</div>
+                <div class="scroll-item">Item 4</div>
+                <div class="scroll-item">Item 5</div>
+                <div class="scroll-item">Item 6</div>
+                <div class="scroll-item">Item 7</div>
+                <div class="scroll-item">Item 8</div>
+            </div>
+            <p class="info-text">Responsive animation with matchMedia for mobile/desktop</p>
+        </section>
+    </div>
+
+    <!-- GSAP CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Draggable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <script>
+        // Register plugins
+        gsap.registerPlugin(Draggable, ScrollTrigger);
+
+        // ============================================
+        // Demo 1: Draggable with Snap
+        // ============================================
+        const draggableArea = document.querySelector('.draggable-area');
+        const draggableBox = document.querySelector('.draggable-box');
+        const resetBtn = document.getElementById('resetDraggable');
+
+        let draggable = null;
+        let isDragging = false;
+
+        function initDraggable() {
+            if (draggable) {
+                draggable.kill();
+            }
+
+            const areaRect = draggableArea.getBoundingClientRect();
+            const boxSize = 60;
+            const padding = 10;
+            const minX = padding;
+            const maxX = areaRect.width - boxSize - padding;
+            const minY = padding;
+            const maxY = areaRect.height - boxSize - padding;
+
+            draggable = Draggable.create(draggableBox, {
+                type: 'x,y',
+                bounds: draggableArea,
+                inertia: true,
+                snap: {
+                    x: gsap.utils.snap(60),
+                    y: gsap.utils.snap(60)
+                },
+                onPress: () => {
+                    isDragging = true;
+                    gsap.to(draggableBox, { boxShadow: '0 12px 32px rgba(255, 0, 110, 0.6)', duration: 0.2 });
+                },
+                onRelease: () => {
+                    isDragging = false;
+                    gsap.to(draggableBox, { boxShadow: '0 8px 24px rgba(255, 0, 110, 0.4)', duration: 0.2 });
+                },
+                onThrowUpdate: () => {
+                    // Optional: update visual feedback during throw
+                }
+            })[0];
+        }
+
+        resetBtn.addEventListener('click', () => {
+            gsap.to(draggableBox, {
+                x: 0,
+                y: 0,
+                duration: 0.4,
+                ease: 'back.out'
+            });
+        });
+
+        // ============================================
+        // Demo 2: Staggered Animation
+        // ============================================
+        const staggerBtn = document.getElementById('staggerBtn');
+        const staggerItems = document.querySelectorAll('.stagger-item');
+        let staggerTimeline = null;
+
+        function createStaggerTimeline() {
+            if (staggerTimeline) {
+                staggerTimeline.kill();
+            }
+
+            staggerTimeline = gsap.timeline();
+            staggerTimeline.to(staggerItems, {
+                opacity: 1,
+                y: 0,
+                duration: 0.6,
+                stagger: 0.1,
+                ease: 'back.out'
+            });
+        }
+
+        staggerBtn.addEventListener('click', () => {
+            // Reset items first
+            gsap.set(staggerItems, { opacity: 0, y: 20 });
+            // Then animate
+            createStaggerTimeline();
+        });
+
+        // Initial animation on page load
+        createStaggerTimeline();
+
+        // ============================================
+        // Demo 3: ScrollTrigger with matchMedia
+        // ============================================
+        const scrollItems = document.querySelectorAll('.scroll-item');
+
+        function initScrollTrigger() {
+            // Kill existing triggers
+            ScrollTrigger.getAll().forEach(trigger => {
+                if (trigger.vars.id && trigger.vars.id.startsWith('scroll')) {
+                    trigger.kill();
+                }
+            });
+
+            const mm = gsap.matchMedia();
+
+            // Mobile configuration
+            mm.add('(max-width: 767px)', () => {
+                scrollItems.forEach((item, index) => {
+                    gsap.to(item, {
+                        scrollTrigger: {
+                            trigger: item,
+                            start: 'top 80%',
+                            end: 'top 50%',
+                            scrub: false,
+                            id: `scroll-mobile-${index}`
+                        },
+                        opacity: 1,
+                        y: 0,
+                        duration: 0.4,
+                        ease: 'power2.out'
+                    });
+                });
+            });
+
+            // Desktop configuration (more complex)
+            mm.add('(min-width: 768px)', () => {
+                scrollItems.forEach((item, index) => {
+                    gsap.to(item, {
+                        scrollTrigger: {
+                            trigger: item,
+                            start: 'top 75%',
+                            end: 'top 30%',
+                            scrub: 1,
+                            markers: false,
+                            id: `scroll-desktop-${index}`
+                        },
+                        opacity: 1,
+                        y: 0,
+                        scale: 1,
+                        rotation: 0,
+                        duration: 0.6,
+                        ease: 'power2.out'
+                    });
+
+                    // Add a secondary animation on desktop
+                    gsap.to(item, {
+                        scrollTrigger: {
+                            trigger: item,
+                            start: 'top 75%',
+                            end: 'top 30%',
+                            scrub: 1,
+                            id: `scroll-rotate-${index}`
+                        },
+                        rotation: index % 2 === 0 ? 5 : -5,
+                        duration: 0.6
+                    });
+                });
+            });
+        }
+
+        // ============================================
+        // Responsive Initialization
+        // ============================================
+        function initAll() {
+            initDraggable();
+            initScrollTrigger();
+        }
+
+        // Initialize on load
+        window.addEventListener('load', initAll);
+
+        // Handle resize with debounce
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                initAll();
+            }, 250);
+        });
+
+        // Initial setup
+        initAll();
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (draggable) {
+                draggable.kill();
+            }
+            gsap.globalTimeline.clear();
+            ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+        });
+    </script>
+</body>
+</html>

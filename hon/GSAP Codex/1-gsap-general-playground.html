@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GSAP General Playground</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #161a22;
+      --text: #e7ecf3;
+      --muted: #98a2b3;
+      --accent: #7c9dff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 30% 20%, #1a1f2b, var(--bg) 45%);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .app {
+      width: min(1000px, 100%);
+      background: linear-gradient(145deg, #171b24, #10141d);
+      border: 1px solid #252b39;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 1.3rem;
+      letter-spacing: .3px;
+    }
+    p {
+      margin: 0 0 20px;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+    .stage {
+      height: 340px;
+      border: 1px dashed #333b4e;
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      background: #0c0f16;
+    }
+    .shape {
+      position: absolute;
+      width: 90px;
+      height: 90px;
+      opacity: 0.2;
+      transform: scale(0.4) rotate(0deg);
+    }
+    .circle-a {
+      border-radius: 50%;
+      background: linear-gradient(135deg, #4cc9f0, #4361ee);
+      left: 12%;
+      top: 42%;
+    }
+    .square-b {
+      border-radius: 14px;
+      background: linear-gradient(135deg, #f72585, #b5179e);
+      left: 43%;
+      top: 42%;
+    }
+    .circle-c {
+      border-radius: 50%;
+      background: linear-gradient(135deg, #80ed99, #38b000);
+      left: 74%;
+      top: 42%;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    button {
+      border: 1px solid #37445f;
+      background: #1c2331;
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: .2s;
+    }
+    button:hover {
+      border-color: var(--accent);
+      background: #24304a;
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>GSAP General Animation Playground</h1>
+    <p>Timeline demo using opacity, scale, and rotate.</p>
+
+    <section class="stage">
+      <div class="shape circle-a"></div>
+      <div class="shape square-b"></div>
+      <div class="shape circle-c"></div>
+    </section>
+
+    <section class="controls">
+      <button id="runBtn">Run All Animations</button>
+      <button id="reverseBtn">Reverse Animation</button>
+      <button id="resetBtn">Reset</button>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/Draggable.min.js"></script>
+  <script>
+    gsap.registerPlugin(ScrollTrigger, Draggable);
+
+    const shapes = gsap.utils.toArray(".shape");
+    gsap.set(shapes, { opacity: 0.2, scale: 0.4, rotate: 0, y: 0 });
+
+    const tl = gsap.timeline({ paused: true, defaults: { duration: 0.9, ease: "power2.out" } });
+
+    tl.to(".circle-a", { opacity: 1, scale: 1, rotate: 360, y: -60 })
+      .to(".square-b", { opacity: 1, scale: 1, rotate: -270, y: -90 }, "-=0.45")
+      .to(".circle-c", { opacity: 1, scale: 1, rotate: 540, y: -60 }, "-=0.5")
+      .to(shapes, { y: 0, duration: 0.5, ease: "back.out(1.8)" }, "+=0.1");
+
+    document.getElementById("runBtn").addEventListener("click", () => tl.play());
+    document.getElementById("reverseBtn").addEventListener("click", () => tl.reverse());
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      tl.pause(0);
+      gsap.set(shapes, { opacity: 0.2, scale: 0.4, rotate: 0, y: 0 });
+    });
+  </script>
+</body>
+</html>

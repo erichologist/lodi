@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive Fluid Particle System - Mobile WebGL Playground">
+    <title>Fluid Particle System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0a0a0a;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #fff;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0f2e 100%);
+        }
+
+        .settings-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            width: 3rem;
+            height: 3rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            touch-action: manipulation;
+        }
+
+        .settings-toggle:active {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(0.95);
+        }
+
+        .settings-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 10, 10, 0.95);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            z-index: 999;
+        }
+
+        .settings-panel.active {
+            max-height: 35vh;
+            overflow-y: auto;
+        }
+
+        .settings-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .settings-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .settings-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .settings-value {
+            font-size: 0.85rem;
+            color: #00d4ff;
+            font-weight: 600;
+            min-width: 3rem;
+            text-align: right;
+        }
+
+        .slider {
+            width: 100%;
+            height: 2rem;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 1rem;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            padding: 0;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%);
+            cursor: pointer;
+            box-shadow: 0 0 1rem rgba(0, 212, 255, 0.5);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .slider::-webkit-slider-thumb:active {
+            box-shadow: 0 0 2rem rgba(0, 212, 255, 0.8);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 1rem rgba(0, 212, 255, 0.5);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .slider::-moz-range-track {
+            background: transparent;
+            border: none;
+        }
+
+        .slider::-moz-range-thumb:active {
+            box-shadow: 0 0 2rem rgba(0, 212, 255, 0.8);
+        }
+
+        .stats {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.8rem;
+            font-family: 'Monaco', 'Courier New', monospace;
+            letter-spacing: 1px;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            line-height: 1.6;
+            color: #00d4ff;
+        }
+
+        .stats-value {
+            display: inline-block;
+            min-width: 3rem;
+            text-align: right;
+            font-weight: 600;
+        }
+
+        @media (max-height: 600px) {
+            .settings-panel.active {
+                max-height: 50vh;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .settings-toggle {
+                width: 2.5rem;
+                height: 2.5rem;
+                font-size: 1.25rem;
+            }
+
+            .settings-panel {
+                padding: 1rem;
+            }
+
+            .slider {
+                height: 1.75rem;
+            }
+
+            .slider::-webkit-slider-thumb {
+                width: 1.75rem;
+                height: 1.75rem;
+            }
+
+            .slider::-moz-range-thumb {
+                width: 1.75rem;
+                height: 1.75rem;
+            }
+
+            .stats {
+                font-size: 0.7rem;
+                padding: 0.5rem 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="stats" id="stats">
+        FPS: <span class="stats-value" id="fps">60</span><br>
+        Particles: <span class="stats-value" id="particle-count">0</span>
+    </div>
+
+    <button class="settings-toggle" id="settings-toggle">⚙️</button>
+
+    <div class="settings-panel" id="settings-panel">
+        <div class="settings-group">
+            <div class="settings-label">
+                <span>Particle Count</span>
+                <span class="settings-value" id="particle-label">5000</span>
+            </div>
+            <input type="range" id="particle-slider" class="slider" min="500" max="20000" value="5000" step="500">
+        </div>
+
+        <div class="settings-group">
+            <div class="settings-label">
+                <span>Gravity Strength</span>
+                <span class="settings-value" id="gravity-label">0.5</span>
+            </div>
+            <input type="range" id="gravity-slider" class="slider" min="0" max="2" value="0.5" step="0.1">
+        </div>
+
+        <div class="settings-group">
+            <div class="settings-label">
+                <span>Particle Speed</span>
+                <span class="settings-value" id="speed-label">1.0</span>
+            </div>
+            <input type="range" id="speed-slider" class="slider" min="0.1" max="3" value="1.0" step="0.1">
+        </div>
+    </div>
+
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        precision mediump float;
+        
+        attribute vec2 position;
+        attribute vec3 color;
+        attribute float size;
+        
+        uniform mat4 projection;
+        
+        varying vec3 vColor;
+        varying float vAlpha;
+        
+        void main() {
+            gl_Position = projection * vec4(position, 0.0, 1.0);
+            gl_PointSize = size;
+            vColor = color;
+            vAlpha = smoothstep(0.0, 1.0, size / 10.0);
+        }
+    </script>
+
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        
+        varying vec3 vColor;
+        varying float vAlpha;
+        
+        void main() {
+            vec2 center = gl_PointCoord - vec2(0.5);
+            float dist = length(center);
+            float alpha = 1.0 - smoothstep(0.4, 0.5, dist);
+            gl_FragColor = vec4(vColor, alpha * vAlpha * 0.8);
+        }
+    </script>
+
+    <script>
+        class FluidParticleSystem {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.gl = this.canvas.getContext('webgl', {
+                    antialias: false,
+                    precision: 'mediump',
+                    alpha: true,
+                    powerPreference: 'high-performance'
+                });
+
+                if (!this.gl) {
+                    console.error('WebGL not supported');
+                    return;
+                }
+
+                this.settings = {
+                    particleCount: 5000,
+                    gravity: 0.5,
+                    speedMultiplier: 1.0
+                };
+
+                this.particles = [];
+                this.touchPoints = [];
+                this.lastFrameTime = Date.now();
+                this.frameCount = 0;
+                this.fps = 60;
+
+                this.initWebGL();
+                this.createParticles();
+                this.setupEventListeners();
+                this.handleResize();
+                this.animate();
+            }
+
+            initWebGL() {
+                const vertexShaderSource = document.getElementById('vertex-shader').textContent;
+                const fragmentShaderSource = document.getElementById('fragment-shader').textContent;
+
+                const vertexShader = this.createShader(this.gl.VERTEX_SHADER, vertexShaderSource);
+                const fragmentShader = this.createShader(this.gl.FRAGMENT_SHADER, fragmentShaderSource);
+
+                this.program = this.gl.createProgram();
+                this.gl.attachShader(this.program, vertexShader);
+                this.gl.attachShader(this.program, fragmentShader);
+                this.gl.linkProgram(this.program);
+
+                if (!this.gl.getProgramParameter(this.program, this.gl.LINK_STATUS)) {
+                    console.error('Program link error:', this.gl.getProgramInfoLog(this.program));
+                }
+
+                this.gl.useProgram(this.program);
+
+                this.positionBuffer = this.gl.createBuffer();
+                this.colorBuffer = this.gl.createBuffer();
+                this.sizeBuffer = this.gl.createBuffer();
+
+                this.positionLocation = this.gl.getAttribLocation(this.program, 'position');
+                this.colorLocation = this.gl.getAttribLocation(this.program, 'color');
+                this.sizeLocation = this.gl.getAttribLocation(this.program, 'size');
+
+                this.gl.enableVertexAttribArray(this.positionLocation);
+                this.gl.enableVertexAttribArray(this.colorLocation);
+                this.gl.enableVertexAttribArray(this.sizeLocation);
+
+                this.gl.enable(this.gl.BLEND);
+                this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE);
+
+                this.projectionLocation = this.gl.getUniformLocation(this.program, 'projection');
+            }
+
+            createShader(type, source) {
+                const shader = this.gl.createShader(type);
+                this.gl.shaderSource(shader, source);
+                this.gl.compileShader(shader);
+
+                if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+                    console.error('Shader compile error:', this.gl.getShaderInfoLog(shader));
+                    this.gl.deleteShader(shader);
+                    return null;
+                }
+                return shader;
+            }
+
+            createParticles() {
+                this.particles = [];
+                const count = this.settings.particleCount;
+
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 2 + 1;
+                    
+                    this.particles.push({
+                        x: this.canvas.width / 2 + (Math.random() - 0.5) * 100,
+                        y: this.canvas.height / 2 + (Math.random() - 0.5) * 100,
+                        vx: Math.cos(angle) * speed * this.settings.speedMultiplier,
+                        vy: Math.sin(angle) * speed * this.settings.speedMultiplier,
+                        hue: Math.random() * 360,
+                        size: Math.random() * 3 + 2
+                    });
+                }
+            }
+
+            updateParticles(deltaTime) {
+                const gravity = this.settings.gravity * 0.01;
+                const speedMul = this.settings.speedMultiplier;
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+                const touchInfluence = 150;
+
+                for (let i = 0; i < this.particles.length; i++) {
+                    const p = this.particles[i];
+
+                    p.vy += gravity;
+                    
+                    for (const touch of this.touchPoints) {
+                        const dx = touch.x - p.x;
+                        const dy = touch.y - p.y;
+                        const dist = Math.hypot(dx, dy);
+
+                        if (dist < touchInfluence && dist > 0) {
+                            const force = (1 - dist / touchInfluence) * 2 * speedMul;
+                            p.vx += (dx / dist) * force;
+                            p.vy += (dy / dist) * force;
+                        }
+                    }
+
+                    p.x += p.vx * deltaTime;
+                    p.y += p.vy * deltaTime;
+
+                    if (p.x < 0 || p.x > w) {
+                        p.vx *= -0.8;
+                        p.x = Math.max(0, Math.min(w, p.x));
+                    }
+                    if (p.y < 0 || p.y > h) {
+                        p.vy *= -0.8;
+                        p.y = Math.max(0, Math.min(h, p.y));
+                    }
+
+                    p.vx *= 0.995;
+                    p.vy *= 0.995;
+                }
+            }
+
+            render() {
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+
+                this.gl.viewport(0, 0, w, h);
+                this.gl.clearColor(0, 0, 0, 0);
+                this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+
+                const projection = this.orthographicMatrix(0, w, h, 0, -1, 1);
+                this.gl.uniformMatrix4fv(this.projectionLocation, false, projection);
+
+                const posData = new Float32Array(this.particles.length * 2);
+                const colorData = new Float32Array(this.particles.length * 3);
+                const sizeData = new Float32Array(this.particles.length);
+
+                for (let i = 0; i < this.particles.length; i++) {
+                    const p = this.particles[i];
+                    posData[i * 2] = p.x;
+                    posData[i * 2 + 1] = p.y;
+
+                    const rgb = this.hslToRgb(p.hue, 80, 50);
+                    colorData[i * 3] = rgb.r;
+                    colorData[i * 3 + 1] = rgb.g;
+                    colorData[i * 3 + 2] = rgb.b;
+
+                    sizeData[i] = Math.max(1, p.size);
+                }
+
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, posData, this.gl.DYNAMIC_DRAW);
+                this.gl.vertexAttribPointer(this.positionLocation, 2, this.gl.FLOAT, false, 0, 0);
+
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, colorData, this.gl.DYNAMIC_DRAW);
+                this.gl.vertexAttribPointer(this.colorLocation, 3, this.gl.FLOAT, false, 0, 0);
+
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.sizeBuffer);
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, sizeData, this.gl.DYNAMIC_DRAW);
+                this.gl.vertexAttribPointer(this.sizeLocation, 1, this.gl.FLOAT, false, 0, 0);
+
+                this.gl.drawArrays(this.gl.POINTS, 0, this.particles.length);
+            }
+
+            orthographicMatrix(left, right, bottom, top, near, far) {
+                const matrix = new Float32Array(16);
+                const lr = 1 / (left - right);
+                const bt = 1 / (bottom - top);
+                const nf = 1 / (near - far);
+
+                matrix[0] = -2 * lr;
+                matrix[5] = -2 * bt;
+                matrix[10] = 2 * nf;
+                matrix[12] = (left + right) * lr;
+                matrix[13] = (top + bottom) * bt;
+                matrix[14] = (far + near) * nf;
+                matrix[15] = 1;
+
+                return matrix;
+            }
+
+            hslToRgb(h, s, l) {
+                h = h / 360;
+                s = s / 100;
+                l = l / 100;
+
+                let r, g, b;
+
+                if (s === 0) {
+                    r = g = b = l;
+                } else {
+                    const hue2rgb = (p, q, t) => {
+                        if (t < 0) t += 1;
+                        if (t > 1) t -= 1;
+                        if (t < 1/6) return p + (q - p) * 6 * t;
+                        if (t < 1/2) return q;
+                        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                        return p;
+                    };
+
+                    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                    const p = 2 * l - q;
+                    r = hue2rgb(p, q, h + 1/3);
+                    g = hue2rgb(p, q, h);
+                    b = hue2rgb(p, q, h - 1/3);
+                }
+
+                return { r, g, b };
+            }
+
+            handleResize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+
+            setupEventListeners() {
+                window.addEventListener('resize', () => this.handleResize());
+                window.addEventListener('orientationchange', () => {
+                    setTimeout(() => this.handleResize(), 100);
+                });
+
+                document.getElementById('settings-toggle').addEventListener('click', () => {
+                    document.getElementById('settings-panel').classList.toggle('active');
+                });
+
+                document.getElementById('particle-slider').addEventListener('input', (e) => {
+                    this.settings.particleCount = parseInt(e.target.value);
+                    document.getElementById('particle-label').textContent = this.settings.particleCount.toLocaleString();
+                    this.createParticles();
+                });
+
+                document.getElementById('gravity-slider').addEventListener('input', (e) => {
+                    this.settings.gravity = parseFloat(e.target.value);
+                    document.getElementById('gravity-label').textContent = this.settings.gravity.toFixed(1);
+                });
+
+                document.getElementById('speed-slider').addEventListener('input', (e) => {
+                    this.settings.speedMultiplier = parseFloat(e.target.value);
+                    document.getElementById('speed-label').textContent = this.settings.speedMultiplier.toFixed(1);
+                });
+
+                this.canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e));
+                this.canvas.addEventListener('touchmove', (e) => this.handleTouchMove(e));
+                this.canvas.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+                this.canvas.addEventListener('touchcancel', (e) => this.handleTouchEnd(e));
+            }
+
+            handleTouchStart(e) {
+                e.preventDefault();
+                this.updateTouchPoints(e.touches);
+            }
+
+            handleTouchMove(e) {
+                e.preventDefault();
+                this.updateTouchPoints(e.touches);
+            }
+
+            handleTouchEnd(e) {
+                e.preventDefault();
+                this.updateTouchPoints(e.touches);
+            }
+
+            updateTouchPoints(touches) {
+                this.touchPoints = Array.from(touches).map(touch => ({
+                    x: touch.clientX,
+                    y: touch.clientY
+                }));
+            }
+
+            updateStats() {
+                const now = Date.now();
+                const deltaTime = (now - this.lastFrameTime) / 1000;
+                this.lastFrameTime = now;
+
+                this.frameCount++;
+                if (this.frameCount % 30 === 0) {
+                    this.fps = Math.round(1 / deltaTime);
+                    document.getElementById('fps').textContent = this.fps;
+                }
+
+                document.getElementById('particle-count').textContent = this.particles.length.toLocaleString();
+            }
+
+            animate() {
+                const deltaTime = 1 / 60;
+
+                this.updateParticles(deltaTime);
+                this.render();
+                this.updateStats();
+
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            new FluidParticleSystem();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GSAP SVG Playground</title>
+  <style>
+    :root {
+      --bg: #0b0f16;
+      --panel: #141b28;
+      --text: #e6edf7;
+      --muted: #95a2b8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 20% 10%, #1a2130, var(--bg) 55%);
+      color: var(--text);
+      font-family: Inter, system-ui, sans-serif;
+      padding: 20px;
+    }
+    .app {
+      width: min(980px, 100%);
+      background: linear-gradient(160deg, #171f2e, #101723);
+      border: 1px solid #2b3548;
+      border-radius: 16px;
+      padding: 20px;
+    }
+    h1 { margin: 0 0 8px; font-size: 1.25rem; }
+    p { margin: 0 0 14px; color: var(--muted); }
+    svg {
+      width: 100%;
+      height: 420px;
+      border: 1px dashed #39455d;
+      border-radius: 10px;
+      background: #0c111b;
+    }
+    .controls {
+      margin-top: 14px;
+      display: grid;
+      gap: 10px;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+    }
+    button {
+      border: 1px solid #3d4a66;
+      background: #1c2638;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    input[type="range"] { width: 100%; }
+    .label {
+      grid-column: 1 / -1;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>Interactive SVG Playground (MotionPath + Morph/Draw Loaded)</h1>
+    <p>Click to run, then scrub timeline progress live with the slider.</p>
+
+    <svg viewBox="0 0 1000 420" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="trailGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#2ec4ff" />
+          <stop offset="100%" stop-color="#7b61ff" />
+        </linearGradient>
+      </defs>
+
+      <path id="route"
+        d="M 60 300 C 120 70, 280 80, 340 220 S 520 390, 610 220 S 820 40, 940 230"
+        fill="none"
+        stroke="url(#trailGradient)"
+        stroke-width="6"
+        stroke-linecap="round" />
+
+      <circle id="nodeA" cx="60" cy="300" r="10" fill="#2ec4ff" />
+      <circle id="nodeB" cx="940" cy="230" r="10" fill="#7b61ff" />
+
+      <polygon id="ship" points="0,-20 16,16 -16,16" fill="#ffd166" />
+    </svg>
+
+    <div class="controls">
+      <button id="startBtn">Animate on Path</button>
+      <input id="progress" type="range" min="0" max="100" value="0" />
+      <div class="label">Progress: <span id="progressText">0%</span></div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/MotionPathPlugin.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap-trial@3.12.5/dist/MorphSVGPlugin.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap-trial@3.12.5/dist/DrawSVGPlugin.min.js"></script>
+  <script>
+    gsap.registerPlugin(MotionPathPlugin, MorphSVGPlugin, DrawSVGPlugin);
+
+    gsap.set("#ship", { xPercent: -50, yPercent: -50, transformOrigin: "50% 50%" });
+    gsap.set("#route", { drawSVG: "0% 0%" });
+
+    const travel = gsap.timeline({ paused: true, defaults: { ease: "none" } })
+      .to("#route", { drawSVG: "0% 100%", duration: 2 })
+      .to("#ship", {
+        duration: 4.5,
+        motionPath: {
+          path: "#route",
+          align: "#route",
+          autoRotate: true,
+          alignOrigin: [0.5, 0.5]
+        }
+      }, 0)
+      .to("#ship", {
+        duration: 1.3,
+        morphSVG: "circle",
+        fill: "#ef476f",
+        scale: 1.2
+      }, ">-0.8");
+
+    const slider = document.getElementById("progress");
+    const label = document.getElementById("progressText");
+
+    document.getElementById("startBtn").addEventListener("click", () => travel.restart());
+    slider.addEventListener("input", () => {
+      const p = slider.value / 100;
+      travel.progress(p).pause();
+      label.textContent = `${slider.value}%`;
+    });
+
+    travel.eventCallback("onUpdate", () => {
+      const v = Math.round(travel.progress() * 100);
+      slider.value = String(v);
+      label.textContent = `${v}%`;
+    });
+  </script>
+</body>
+</html>

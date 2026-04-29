@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>MobileFontLab</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #1a1a1a;
+      --panel: #242424;
+      --panel-2: #2e2e2e;
+      --text: #ffffff;
+      --muted: #c3c3c3;
+      --accent: #6ea8fe;
+      --hit: 44px;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      display: flex;
+      min-height: 100dvh;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      min-height: 100dvh;
+    }
+
+    .top-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid #333;
+      background: #1f1f1f;
+    }
+
+    .file-label {
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    input[type="file"] {
+      min-height: var(--hit);
+      width: 100%;
+      border: 1px solid #3a3a3a;
+      border-radius: 10px;
+      background: #191919;
+      color: var(--text);
+      padding: 8px;
+      font-size: 1rem;
+    }
+
+    .status {
+      min-height: 1.2em;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .preview-wrap {
+      flex: 1;
+      min-height: 0;
+      padding: 16px 14px 10px;
+      overflow: auto;
+    }
+
+    .playground {
+      min-height: 45dvh;
+      outline: none;
+      border: 1px solid #353535;
+      border-radius: 12px;
+      background: #111;
+      padding: 16px;
+      font-size: 28px;
+      line-height: 1.4;
+      caret-color: var(--accent);
+      word-break: break-word;
+    }
+
+    .controls {
+      position: sticky;
+      bottom: 0;
+      z-index: 5;
+      background: var(--panel);
+      border-top: 1px solid #3a3a3a;
+      border-top-left-radius: var(--radius);
+      border-top-right-radius: var(--radius);
+      box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.28);
+      padding: 10px 14px 12px;
+      max-height: 48dvh;
+      overflow: auto;
+    }
+
+    .sheet-handle {
+      width: 52px;
+      height: 5px;
+      border-radius: 6px;
+      background: #666;
+      margin: 0 auto 12px;
+    }
+
+    .group {
+      margin-bottom: 14px;
+      padding: 10px;
+      background: var(--panel-2);
+      border-radius: 10px;
+    }
+
+    .group-title {
+      font-size: 0.95rem;
+      margin: 0 0 8px;
+      color: #f3f3f3;
+      font-weight: 600;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: var(--hit);
+      margin-bottom: 6px;
+    }
+
+    .row:last-child {
+      margin-bottom: 0;
+    }
+
+    .value {
+      color: var(--muted);
+      min-width: 48px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .axis-slider,
+    .typo-slider {
+      width: 100%;
+      min-height: var(--hit);
+      accent-color: var(--accent);
+    }
+
+    .checks {
+      display: grid;
+      gap: 8px;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: var(--hit);
+      padding: 0 2px;
+      font-size: 0.98rem;
+    }
+
+    .check-item input[type="checkbox"] {
+      width: 26px;
+      height: 26px;
+      accent-color: var(--accent);
+    }
+
+    #cssOutput {
+      width: 100%;
+      min-height: 110px;
+      border: 1px solid #4a4a4a;
+      border-radius: 10px;
+      background: #121212;
+      color: #d7f5c0;
+      font: 0.82rem/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      padding: 10px;
+      resize: vertical;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="top-bar">
+      <label class="file-label" for="fontInput">Upload .woff2 or .ttf</label>
+      <input id="fontInput" type="file" accept=".woff2,.ttf,font/ttf,font/woff2" />
+      <div id="status" class="status">Using fallback system font.</div>
+    </div>
+
+    <main class="preview-wrap">
+      <div id="playground" class="playground" contenteditable="true" spellcheck="false">
+        Sphinx of black quartz, judge my vow. 0123456789 fi fl ff ffi ffl.
+      </div>
+    </main>
+
+    <section class="controls" aria-label="Font controls">
+      <div class="sheet-handle" aria-hidden="true"></div>
+
+      <div class="group">
+        <h2 class="group-title">Variable Axes</h2>
+        <div id="axesContainer"></div>
+      </div>
+
+      <div class="group">
+        <h2 class="group-title">OpenType Features</h2>
+        <div class="checks" id="featureContainer"></div>
+      </div>
+
+      <div class="group">
+        <h2 class="group-title">Text Metrics</h2>
+        <div class="row">
+          <label for="fontSize">Font Size</label>
+          <span class="value" id="fontSizeValue">28px</span>
+        </div>
+        <input id="fontSize" class="typo-slider" type="range" min="16" max="40" step="1" value="28" />
+        <div class="row">
+          <label for="lineHeight">Line Height</label>
+          <span class="value" id="lineHeightValue">1.40</span>
+        </div>
+        <input id="lineHeight" class="typo-slider" type="range" min="1.2" max="1.6" step="0.01" value="1.4" />
+      </div>
+
+      <textarea id="cssOutput" readonly aria-label="Generated CSS output"></textarea>
+    </section>
+  </div>
+
+  <script>
+    const AXES = [
+      { tag: "wght", label: "Weight (wght)", defaultValue: 400 },
+      { tag: "wdth", label: "Width (wdth)", defaultValue: 100 },
+      { tag: "slnt", label: "Slant (slnt)", defaultValue: 0 },
+      { tag: "opsz", label: "Optical Size (opsz)", defaultValue: 16 }
+    ];
+
+    const FEATURES = [
+      { tag: "liga", label: "Ligatures", defaultOn: true },
+      { tag: "kern", label: "Kerning", defaultOn: true },
+      { tag: "smcp", label: "Small Caps", defaultOn: false },
+      { tag: "salt", label: "Stylistic Alternates", defaultOn: false },
+      { tag: "tnum", label: "Tabular Figures", defaultOn: false }
+    ];
+
+    const state = {
+      fontFamily: "System Fallback",
+      axisTags: AXES.map((a) => a.tag),
+      axes: Object.fromEntries(AXES.map((a) => [a.tag, a.defaultValue])),
+      features: Object.fromEntries(FEATURES.map((f) => [f.tag, f.defaultOn ? 1 : 0])),
+      fontSize: 28,
+      lineHeight: 1.4
+    };
+
+    const els = {
+      fontInput: document.getElementById("fontInput"),
+      status: document.getElementById("status"),
+      playground: document.getElementById("playground"),
+      axesContainer: document.getElementById("axesContainer"),
+      featureContainer: document.getElementById("featureContainer"),
+      fontSize: document.getElementById("fontSize"),
+      lineHeight: document.getElementById("lineHeight"),
+      fontSizeValue: document.getElementById("fontSizeValue"),
+      lineHeightValue: document.getElementById("lineHeightValue"),
+      cssOutput: document.getElementById("cssOutput")
+    };
+
+    let fontFaceStyleEl = null;
+
+    function axisSettingsString(tags = state.axisTags) {
+      if (!tags.length) return "normal";
+      return tags.map((tag) => `"${tag}" ${Math.round(state.axes[tag])}`).join(", ");
+    }
+
+    function featureSettingsString() {
+      return FEATURES.map((f) => `"${f.tag}" ${state.features[f.tag] ? 1 : 0}`).join(", ");
+    }
+
+    function updatePreview() {
+      const variation = axisSettingsString();
+      const feature = featureSettingsString();
+
+      els.playground.style.fontFamily = `"${state.fontFamily}", sans-serif`;
+      els.playground.style.fontVariationSettings = variation;
+      els.playground.style.fontFeatureSettings = feature;
+      els.playground.style.fontSize = `${state.fontSize}px`;
+      els.playground.style.lineHeight = String(state.lineHeight);
+
+      els.fontSizeValue.textContent = `${state.fontSize}px`;
+      els.lineHeightValue.textContent = state.lineHeight.toFixed(2);
+
+      els.cssOutput.value = [
+        `font-family: "${state.fontFamily}", sans-serif;`,
+        `font-size: ${state.fontSize}px;`,
+        `line-height: ${state.lineHeight.toFixed(2)};`,
+        `font-variation-settings: ${variation};`,
+        `font-feature-settings: ${feature};`
+      ].join("\n");
+    }
+
+    function createAxisControls(tags) {
+      const visibleAxes = AXES.filter((axis) => tags.includes(axis.tag));
+      els.axesContainer.innerHTML = "";
+
+      visibleAxes.forEach((axis) => {
+        const wrap = document.createElement("div");
+        wrap.className = "row";
+        const label = document.createElement("label");
+        label.htmlFor = `axis-${axis.tag}`;
+        label.textContent = axis.label;
+
+        const value = document.createElement("span");
+        value.className = "value";
+        value.id = `value-${axis.tag}`;
+        value.textContent = String(Math.round(state.axes[axis.tag]));
+
+        wrap.append(label, value);
+
+        const slider = document.createElement("input");
+        slider.className = "axis-slider";
+        slider.type = "range";
+        slider.id = `axis-${axis.tag}`;
+        slider.min = "0";
+        slider.max = "1000";
+        slider.step = "1";
+        slider.value = String(Math.round(state.axes[axis.tag]));
+        slider.addEventListener("input", () => {
+          state.axes[axis.tag] = Number(slider.value);
+          value.textContent = slider.value;
+          updatePreview();
+        });
+
+        els.axesContainer.append(wrap, slider);
+      });
+
+      if (!visibleAxes.length) {
+        const info = document.createElement("div");
+        info.className = "status";
+        info.textContent = "No standard variable axes detected; showing none.";
+        els.axesContainer.appendChild(info);
+      }
+    }
+
+    function createFeatureControls() {
+      els.featureContainer.innerHTML = "";
+      FEATURES.forEach((feature) => {
+        const row = document.createElement("label");
+        row.className = "check-item";
+        row.htmlFor = `feature-${feature.tag}`;
+        row.innerHTML = `<span>${feature.label} (${feature.tag})</span>`;
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.id = `feature-${feature.tag}`;
+        checkbox.checked = !!state.features[feature.tag];
+        checkbox.addEventListener("change", () => {
+          state.features[feature.tag] = checkbox.checked ? 1 : 0;
+          updatePreview();
+        });
+
+        row.appendChild(checkbox);
+        els.featureContainer.appendChild(row);
+      });
+    }
+
+    function axisAffectsMetrics(tag) {
+      const probe = document.createElement("span");
+      probe.textContent = "Sphinx 0123456789 fi fl ffi";
+      probe.style.position = "absolute";
+      probe.style.left = "-99999px";
+      probe.style.top = "0";
+      probe.style.whiteSpace = "nowrap";
+      probe.style.fontFamily = `"${state.fontFamily}", sans-serif`;
+      probe.style.fontSize = "48px";
+      probe.style.lineHeight = "1";
+      document.body.appendChild(probe);
+
+      const base = AXES.reduce((obj, a) => {
+        obj[a.tag] = state.axes[a.tag];
+        return obj;
+      }, {});
+
+      const toSettings = (values) => AXES.map((a) => `"${a.tag}" ${Math.round(values[a.tag])}`).join(", ");
+
+      const minVals = { ...base, [tag]: 0 };
+      const maxVals = { ...base, [tag]: 1000 };
+
+      probe.style.fontVariationSettings = toSettings(minVals);
+      const minRect = probe.getBoundingClientRect();
+      probe.style.fontVariationSettings = toSettings(maxVals);
+      const maxRect = probe.getBoundingClientRect();
+
+      document.body.removeChild(probe);
+
+      const widthDelta = Math.abs(maxRect.width - minRect.width);
+      const heightDelta = Math.abs(maxRect.height - minRect.height);
+      return widthDelta > 0.3 || heightDelta > 0.3;
+    }
+
+    function detectStandardAxes() {
+      const detected = AXES.filter((a) => axisAffectsMetrics(a.tag)).map((a) => a.tag);
+      return detected.length ? detected : AXES.map((a) => a.tag);
+    }
+
+    function injectUploadedFont(dataUrl, formatHint) {
+      if (fontFaceStyleEl) fontFaceStyleEl.remove();
+      fontFaceStyleEl = document.createElement("style");
+      fontFaceStyleEl.textContent = `
+        @font-face {
+          font-family: "UploadedMobileFont";
+          src: url("${dataUrl}") format("${formatHint}");
+          font-display: swap;
+        }
+      `;
+      document.head.appendChild(fontFaceStyleEl);
+      state.fontFamily = "UploadedMobileFont";
+    }
+
+    function loadFontFile(file) {
+      const ext = file.name.toLowerCase().endsWith(".woff2") ? "woff2" : (file.name.toLowerCase().endsWith(".ttf") ? "truetype" : "");
+      if (!ext) {
+        els.status.textContent = "Unsupported file type. Please upload .woff2 or .ttf.";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result);
+        injectUploadedFont(dataUrl, ext);
+        els.status.textContent = `Loaded: ${file.name}`;
+        requestAnimationFrame(() => {
+          state.axisTags = detectStandardAxes();
+          createAxisControls(state.axisTags);
+          updatePreview();
+        });
+      };
+      reader.onerror = () => {
+        els.status.textContent = "Could not read font file.";
+      };
+      reader.readAsDataURL(file);
+    }
+
+    els.fontInput.addEventListener("change", (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      loadFontFile(file);
+    });
+
+    els.fontSize.addEventListener("input", () => {
+      state.fontSize = Number(els.fontSize.value);
+      updatePreview();
+    });
+
+    els.lineHeight.addEventListener("input", () => {
+      state.lineHeight = Number(els.lineHeight.value);
+      updatePreview();
+    });
+
+    createAxisControls(state.axisTags);
+    createFeatureControls();
+    updatePreview();
+  </script>
+</body>
+</html>

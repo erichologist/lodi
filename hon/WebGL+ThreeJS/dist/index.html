@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebGL Interactive Playground</title>
+  <script type="module" crossorigin src="/assets/index-BYMMdb1o.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DR48w1r7.css">
+</head>
+<body>
+    <div class="playground-container">
+        <!-- Mesh Gradient Background -->
+        <svg class="mesh-gradient" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="grad1" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#ff006e" />
+                    <stop offset="100%" stop-color="#8338ec" />
+                </linearGradient>
+                <filter id="blur">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="40" />
+                </filter>
+            </defs>
+
+            <!-- Mesh gradient nodes (circles with blend modes) -->
+            <g class="gradient-nodes" filter="url(#blur)">
+                <circle class="gradient-node" id="node-0" cx="300" cy="250" r="180" fill="#ff006e" opacity="0.6" />
+                <circle class="gradient-node" id="node-1" cx="900" cy="300" r="180" fill="#8338ec" opacity="0.6" />
+                <circle class="gradient-node" id="node-2" cx="150" cy="700" r="180" fill="#3a86ff" opacity="0.6" />
+                <circle class="gradient-node" id="node-3" cx="1050" cy="650" r="180" fill="#fb5607" opacity="0.6" />
+                <circle class="gradient-node" id="node-4" cx="600" cy="450" r="200" fill="#06ffa5" opacity="0.4" />
+            </g>
+        </svg>
+
+        <!-- Three.js Canvas (foreground) -->
+        <canvas id="canvas" class="webgl-canvas"></canvas>
+    </div>
+
+</body>
+</html>
